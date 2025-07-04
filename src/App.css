@@ -206,3 +206,104 @@ body, #root, .main-wrapper {
   margin-top: 2px;
   font-weight: 400;
 }
+/* أزرار مزود/أدمن */
+.provider-btn {
+  display: block;
+  width: 97%;
+  margin: 7px auto;
+  background: #2176c1;
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  padding: 13px 0 11px 0;
+  font-size: 1.05em;
+  font-weight: bold;
+  letter-spacing: 1px;
+  transition: background .14s;
+  box-shadow: 0 1px 8px #2176c11a;
+  cursor: pointer;
+}
+.provider-btn:active {
+  background: #003c6e;
+}
+
+/* نافذة الدخول */
+.modal-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30,40,60,0.19);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-login {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 5px 30px 3px #1a5c9a13;
+  padding: 30px 22px 18px 22px;
+  min-width: 270px;
+  max-width: 340px;
+  width: 94vw;
+  position: relative;
+  text-align: center;
+}
+.modal-login h3, .modal-login h4 {
+  margin: 0 0 10px 0;
+  color: #2176c1;
+  font-weight: bold;
+}
+.modal-login input[type="text"],
+.modal-login input[type="password"] {
+  width: 95%;
+  padding: 9px 11px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #d7eaff;
+  background: #f7fbff;
+  font-size: 1.07em;
+  direction: ltr;
+  font-family: inherit;
+}
+.input-pass-wrap {
+  display: flex;
+  align-items: center;
+  width: 95%;
+  margin: 0 auto;
+}
+.input-pass-wrap input {
+  flex: 1;
+}
+.showpass-btn {
+  background: none;
+  border: none;
+  font-size: 1.32em;
+  cursor: pointer;
+  margin-left: -30px;
+  color: #888;
+}
+.login-btn {
+  width: 100%;
+  padding: 9px 0;
+  margin: 11px 0 0 0;
+  border-radius: 8px;
+  background: #2176c1;
+  color: #fff;
+  font-size: 1.07em;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+}
+.login-btn:active {
+  background: #003c6e;
+}
+.login-error {
+  color: #d90000;
+  background: #fff0f0;
+  border-radius: 8px;
+  margin: 8px auto;
+  font-size: 0.98em;
+  padding: 4px 0;
+  width: 96%;
+}
