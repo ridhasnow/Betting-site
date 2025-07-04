@@ -2,67 +2,174 @@ body, #root, .main-wrapper {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background: #1064a7;
+  background: #f6f7fb;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 
+/* Header */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #03396c;
+  background: #111;
   color: #fff;
-  padding: 18px 20px 12px 20px;
+  padding: 16px 18px 12px 18px;
   font-size: 1.4rem;
   font-weight: bold;
   box-shadow: 0 2px 7px rgba(0,0,0,0.08);
 }
-
+.header-black {
+  background: #111;
+}
+.header-title {
+  flex: 1;
+  font-size: 1.3rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-align: left;
+}
 .header-logo {
   width: 52px;
-  height: 36px;
-  background: transparent;
-  /* هنا تضع الشعار لاحقاً */
+  height: 38px;
+  object-fit: contain;
+  margin-left: 18px;
 }
 
+/* Slider */
+.slider-holder {
+  width: 100%;
+  height: 64px;
+  margin-bottom: 18px;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.slider-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Grid */
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 22px;
-  padding: 32px 18px 90px 18px;
+  gap: 18px;
+  padding: 20px 14px 92px 14px;
 }
-
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
 .grid-item {
-  background: #2176c1;
-  border-radius: 14px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+  background: #fff;
+  border-radius: 13px;
+  box-shadow: 0 2px 13px rgba(0,0,0,0.07);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px 0 18px 0;
-  min-height: 110px;
-  color: #fff;
-  transition: transform 0.15s;
+  padding: 18px 0 13px 0;
+  min-height: 100px;
+  color: #2176c1;
+  transition: transform 0.14s;
   cursor: pointer;
 }
-
 .grid-item:active {
-  transform: scale(0.96);
-  background: #1a5c9a;
+  transform: scale(0.97);
+  background: #f1f5fa;
 }
-
-.grid-item .icon {
-  margin-bottom: 12px;
+.icon-holder {
+  position: relative;
 }
-
+.live-dot {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 8px 8px, #ff4444 60%, #ff8888 100%);
+  box-shadow: 0 0 10px 3px #ff6666, 0 0 2px #fff;
+  animation: glow 1s infinite alternate;
+}
+@keyframes glow {
+  0% { box-shadow: 0 0 10px 3px #ff6666, 0 0 2px #fff; }
+  100% { box-shadow: 0 0 14px 7px #ff1111, 0 0 2px #fff; }
+}
 .grid-item .title {
-  font-size: 1.08rem;
+  font-size: 1.01rem;
   font-weight: 500;
   text-align: center;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
+/* Popup Live Matches */
+.live-popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(25,35,55,0.18);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.live-popup-content {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 40px 3px #1a5c9a11;
+  padding: 26px 20px 20px 20px;
+  min-width: 320px;
+  max-width: 400px;
+  width: 95vw;
+  position: relative;
+}
+.close-btn {
+  position: absolute;
+  top: 10px; right: 18px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #888;
+  cursor: pointer;
+}
+.live-matches-list {
+  margin-top: 16px;
+}
+.live-match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f3f8fd;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 3px solid #2176c1;
+}
+.teams { font-weight: 600; color: #2176c1; font-size: 1.04rem; }
+.time { color: #1a5c9a; font-size: 0.99rem; font-weight: 500; }
+.odds { display: flex; gap: 8px; }
+.odd-btn {
+  background: #2176c1;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 7px;
+  font-size: 0.98rem;
+  min-width: 32px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.odd-btn span {
+  display: block;
+  font-size: 0.87em;
+  font-weight: 400;
+}
+.odd-btn:active {
+  background: #155081;
+}
+
+/* Bottom nav */
 .bottom-nav {
   position: fixed;
   left: 0; right: 0; bottom: 0;
