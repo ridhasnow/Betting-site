@@ -1,9 +1,8 @@
 import React from "react";
 import "./App.css";
-import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaCasino, FaGamepad, FaWheelchair } from "react-icons/fa";
+import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-icons/fa";
 import { GiSpinningWheel } from "react-icons/gi";
 import { MdOutlineSportsSoccer } from "react-icons/md";
-import { SiGoogleclassroom } from "react-icons/si";
 
 const gridButtons = [
   {
@@ -28,7 +27,7 @@ const gridButtons = [
   },
   {
     title: "Casino En Direct",
-    icon: <FaCasino size={48} color="#fff" />,
+    icon: <FaGem size={48} color="#fff" />, // استخدم FaGem أو أيقونة أخرى مناسبة
   },
 ];
 
