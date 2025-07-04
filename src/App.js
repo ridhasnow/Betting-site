@@ -15,33 +15,32 @@ const sliderImages = [
 const gridButtons = [
   {
     title: "Paris En Ligne",
-    icon: <MdOutlineSportsSoccer size={40} color="#2176c1" />,
+    icon: <MdOutlineSportsSoccer size={40} color="#FFF" />,
     live: true, // لإظهار النقطة الحمراء
   },
   {
     title: "Jeux De Casino",
-    icon: <FaDice size={40} color="#2176c1" />,
+    icon: <FaDice size={40} color="#FFF" />,
   },
   {
     title: "Paris Sportif",
-    icon: <FaFutbol size={40} color="#2176c1" />,
+    icon: <FaFutbol size={40} color="#FFF" />,
   },
   {
     title: "Jeux Virtuels",
-    icon: <FaGamepad size={40} color="#2176c1" />,
+    icon: <FaGamepad size={40} color="#FFF" />,
   },
   {
     title: "Roue de la Fortune",
-    icon: <GiSpinningWheel size={40} color="#2176c1" />,
+    icon: <GiSpinningWheel size={40} color="#FFF" />,
   },
   {
     title: "Casino En Direct",
-    icon: <FaGem size={40} color="#2176c1" />,
+    icon: <FaGem size={40} color="#FFF" />,
   },
 ];
 
-// أدخل مفتاح API الخاص بك هنا (theSportsDB)
-const API_KEY = "1"; // "1" هو المفتاح الافتراضي المجاني للتجربة، غيّره لمفتاحك الشخصي لاحقًا
+const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
 
 function App() {
   // سلايدر الصور
@@ -56,23 +55,25 @@ function App() {
   // فتح قائمة مباريات لايف
   const [showLive, setShowLive] = useState(false);
 
-  // بيانات مباريات لايف من API
+  // جلب مباريات اليوم من football-data.org
   const [liveMatches, setLiveMatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // عند فتح لايف، جلب المباريات
   useEffect(() => {
     if (showLive) {
       setLoading(true);
-      fetch(`https://www.thesportsdb.com/api/v1/json/${API_KEY}/eventslast.php?id=4328`) // 4328 = Premier League (مثال)
+      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
+        headers: {
+          "X-Auth-Token": FOOTBALL_API_KEY,
+        },
+      })
         .then(res => res.json())
         .then(data => {
-          // ترتيب البيانات بشكل يناسب العرض (سنضيف بيانات رهان وهمية)
-          const matches = (data.results || []).slice(0, 10).map(ev => ({
-            teams: `${ev.strHomeTeam} vs ${ev.strAwayTeam}`,
-            time: ev.dateEvent + " " + (ev.strTime || ""),
+          const matches = (data.matches || []).slice(0, 10).map(ev => ({
+            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
+            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
             odds: [
-              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) }, // احتمالات وهمية
+              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
               { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
               { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
               { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
@@ -89,7 +90,7 @@ function App() {
   const [selectedBet, setSelectedBet] = useState(null);
 
   return (
-    <div className="main-wrapper">
+    <div className="main-wrapper" style={{background:"#fff"}}>
       {/* Header */}
       <header className="header header-black">
         <span className="header-title">Accueil</span>
@@ -109,7 +110,7 @@ function App() {
       <main className="grid-container grid-3">
         {gridButtons.map((btn, idx) => (
           <div
-            className="grid-item grid-white"
+            className={`grid-item grid-blue`}
             key={idx}
             onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
           >
