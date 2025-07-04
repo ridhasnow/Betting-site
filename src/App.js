@@ -40,6 +40,9 @@ const gridButtons = [
   },
 ];
 
+// أدخل مفتاح API الخاص بك هنا (theSportsDB)
+const API_KEY = "1"; // "1" هو المفتاح الافتراضي المجاني للتجربة، غيّره لمفتاحك الشخصي لاحقًا
+
 function App() {
   // سلايدر الصور
   const [current, setCurrent] = useState(0);
@@ -52,27 +55,38 @@ function App() {
 
   // فتح قائمة مباريات لايف
   const [showLive, setShowLive] = useState(false);
-  // بيانات مباريات لايف (وهمية حالياً)
-  const liveMatches = [
-    {
-      teams: "Tunisia vs Algeria",
-      time: "45'",
-      odds: [
-        { label: "1", value: 2.2 },
-        { label: "X", value: 2.7 },
-        { label: "2", value: 2.9 },
-      ],
-    },
-    {
-      teams: "France vs Morocco",
-      time: "22'",
-      odds: [
-        { label: "1", value: 1.9 },
-        { label: "X", value: 3.1 },
-        { label: "2", value: 3.0 },
-      ],
-    },
-  ];
+
+  // بيانات مباريات لايف من API
+  const [liveMatches, setLiveMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // عند فتح لايف، جلب المباريات
+  useEffect(() => {
+    if (showLive) {
+      setLoading(true);
+      fetch(`https://www.thesportsdb.com/api/v1/json/${API_KEY}/eventslast.php?id=4328`) // 4328 = Premier League (مثال)
+        .then(res => res.json())
+        .then(data => {
+          // ترتيب البيانات بشكل يناسب العرض (سنضيف بيانات رهان وهمية)
+          const matches = (data.results || []).slice(0, 10).map(ev => ({
+            teams: `${ev.strHomeTeam} vs ${ev.strAwayTeam}`,
+            time: ev.dateEvent + " " + (ev.strTime || ""),
+            odds: [
+              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) }, // احتمالات وهمية
+              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
+              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+            ],
+          }));
+          setLiveMatches(matches);
+          setLoading(false);
+        });
+    }
+  }, [showLive]);
+
+  // اختيار رهان (للتوضيح فقط)
+  const [selectedBet, setSelectedBet] = useState(null);
 
   return (
     <div className="main-wrapper">
@@ -116,19 +130,33 @@ function App() {
           <div className="live-popup-content">
             <h3>Live Matches</h3>
             <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
-            <div className="live-matches-list">
-              {liveMatches.map((match, i) => (
-                <div className="live-match-row" key={i}>
-                  <div className="teams">{match.teams}</div>
-                  <div className="time">{match.time}</div>
-                  <div className="odds">
-                    {match.odds.map((odd, j) => (
-                      <button className="odd-btn" key={j}>{odd.label}<span>{odd.value}</span></button>
-                    ))}
+            {loading ? (
+              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+            ) : (
+              <div className="live-matches-list">
+                {liveMatches.map((match, i) => (
+                  <div className="live-match-row" key={i}>
+                    <div className="teams">{match.teams}</div>
+                    <div className="time">{match.time}</div>
+                    <div className="odds">
+                      {match.odds.map((odd, j) => (
+                        <button
+                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          key={j}
+                          onClick={() => setSelectedBet(`${i}-${j}`)}
+                        >
+                          {odd.label}
+                          <span>{odd.value}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                {liveMatches.length === 0 && (
+                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
