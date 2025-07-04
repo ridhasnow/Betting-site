@@ -145,10 +145,11 @@ body, #root, .main-wrapper {
   padding: 10px 12px;
   border-radius: 10px;
   border-left: 3px solid #2176c1;
+  flex-wrap: wrap;
 }
-.teams { font-weight: 600; color: #2176c1; font-size: 1.04rem; }
-.time { color: #1a5c9a; font-size: 0.99rem; font-weight: 500; }
-.odds { display: flex; gap: 8px; }
+.teams { font-weight: 600; color: #2176c1; font-size: 1.04rem; flex: 1 1 100%; }
+.time { color: #1a5c9a; font-size: 0.99rem; font-weight: 500; margin-right: 12px; }
+.odds { display: flex; gap: 8px; flex-wrap: wrap; }
 .odd-btn {
   background: #2176c1;
   color: #fff;
@@ -156,17 +157,20 @@ body, #root, .main-wrapper {
   border-radius: 7px;
   padding: 5px 7px;
   font-size: 0.98rem;
-  min-width: 32px;
+  min-width: 42px;
   font-weight: 600;
   transition: background 0.2s;
+  margin-top: 4px;
+  margin-right: 2px;
+}
+.odd-btn.selected,
+.odd-btn:active {
+  background: #155081;
 }
 .odd-btn span {
   display: block;
   font-size: 0.87em;
   font-weight: 400;
-}
-.odd-btn:active {
-  background: #155081;
 }
 
 /* Bottom nav */
