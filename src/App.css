@@ -1,219 +1,92 @@
-.app-root {
+body, #root, .main-wrapper {
   min-height: 100vh;
-  background: #171717;
-  color: #fff;
+  margin: 0;
+  padding: 0;
+  background: #1064a7;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
+
 .header {
-  background: #09c372;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  font-weight: bold;
-}
-.logo {
-  font-size: 1.5rem;
-  letter-spacing: 2px;
-}
-.login-btn {
-  background: #fff;
-  color: #09c372;
-  border: none;
-  padding: 8px 24px;
-  border-radius: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.login-btn:hover {
-  background: #e1e1e1;
-}
-.slider-container {
-  width: 100%;
-  height: 110px;
-  overflow: hidden;
-  position: relative;
-  background: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.slider-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 0;
-  transition: opacity 0.7s;
-}
-.main-navbar {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  background: #232323;
-  padding: 16px 0 8px 0;
-}
-.nav-btn {
-  background: #262626;
-  border: none;
+  background: #03396c;
   color: #fff;
-  padding: 12px 36px;
-  border-radius: 12px;
-  font-size: 1.05rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  padding: 18px 20px 12px 20px;
+  font-size: 1.4rem;
   font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 2px 7px rgba(0,0,0,0.08);
 }
-.nav-btn:hover {
-  background: #353535;
+
+.header-logo {
+  width: 52px;
+  height: 36px;
+  background: transparent;
+  /* هنا تضع الشعار لاحقاً */
 }
-.live-btn {
-  color: #fff;
-  background: #1a1a1a;
-  position: relative;
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+  padding: 32px 18px 90px 18px;
 }
-.live-dot {
-  width: 10px;
-  height: 10px;
-  background: #ff2626;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 7px;
-  box-shadow: 0 0 10px 3px #ff2626cc, 0 0 5px 2px #ff2626aa;
-  animation: live-glow 1s infinite alternate;
-}
-@keyframes live-glow {
-  from { box-shadow: 0 0 10px 3px #ff2626cc; }
-  to   { box-shadow: 0 0 20px 6px #ff2626; }
-}
-.sports-bar {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  padding: 15px 0;
-  background: #232323;
-  overflow-x: auto;
-}
-.sport-btn {
-  background: #232323;
-  border: none;
-  color: #fff;
+
+.grid-item {
+  background: #2176c1;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-size: 0.98rem;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-.sport-btn:hover, .sport-btn:focus {
-  background: #09c372;
-  color: #171717;
-}
-.sport-text {
-  margin-top: 4px;
-  font-size: 0.9rem;
-}
-.matches-section {
-  padding: 20px 8px 40px 8px;
-  max-width: 540px;
-  margin: 0 auto;
-}
-.section-title {
-  font-weight: bold;
-  color: #09c372;
-  font-size: 1.18rem;
-  margin: 20px 0 8px 0;
-  letter-spacing: 1px;
-}
-.matches-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.match-card {
-  background: #232323;
-  border-radius: 10px;
-  padding: 12px 16px;
-  box-shadow: 0 1px 6px #14141433;
-  margin-bottom: 6px;
-}
-.match-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
-  font-size: 0.93rem;
-  color: #e1e1e1;
-}
-.match-status {
-  color: #ff2626;
-  font-weight: bold;
-  margin-right: 7px;
-}
-.match-time {
-  color: #eee;
-  margin-right: 7px;
-}
-.match-league {
-  color: #09c372;
-  font-size: 0.92rem;
-}
-.match-teams {
-  font-size: 1.04rem;
-  font-weight: bold;
-  margin-bottom: 7px;
-}
-.odds-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 5px;
-}
-.odd-btn {
-  background: #262626;
-  border: none;
+  justify-content: center;
+  padding: 24px 0 18px 0;
+  min-height: 110px;
   color: #fff;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
+  transition: transform 0.15s;
   cursor: pointer;
-  transition: background 0.2s;
 }
-.odd-btn:hover {
-  background: #09c372;
-  color: #171717;
+
+.grid-item:active {
+  transform: scale(0.96);
+  background: #1a5c9a;
 }
-.tournaments-list {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+
+.grid-item .icon {
+  margin-bottom: 12px;
 }
-.tournament-card {
-  background: #262626;
-  border-radius: 8px;
-  padding: 10px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.tournament-name {
-  color: #fff;
+
+.grid-item .title {
+  font-size: 1.08rem;
   font-weight: 500;
+  text-align: center;
+  margin-top: 2px;
 }
-.tournament-matches {
-  color: #09c372;
+
+.bottom-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 62px;
+  background: #232323;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 50;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
 }
-::-webkit-scrollbar {
-  width: 8px;
-  background: #222;
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  font-size: 0.93rem;
+  padding: 4px 10px;
+  cursor: pointer;
 }
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
+
+.nav-btn span {
+  font-size: 0.92em;
+  margin-top: 2px;
+  font-weight: 400;
 }
