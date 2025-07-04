@@ -3,6 +3,7 @@ import "./App.css";
 import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-icons/fa";
 import { GiSpinningWheel } from "react-icons/gi";
 import { MdOutlineSportsSoccer } from "react-icons/md";
+import AuthSystem from "./AuthSystem";
 
 // صور السلايدر
 const sliderImages = [
@@ -41,6 +42,76 @@ const gridButtons = [
 ];
 
 const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
+
+// واجهة مزود بسيطة مؤقتًا
+function ProviderDashboard({ user, onLogout }) {
+  return (
+    <div>
+      <header className="header header-black">
+        <span className="header-title">{user.username}</span>
+        <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
+          {user.balance ?? 0} DZD
+        </span>
+        <button onClick={onLogout} style={{marginLeft:"auto", color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer"}}>⏻</button>
+      </header>
+      <div style={{padding: '22px 6px 0 6px'}}>
+        <button className="provider-btn">New User Registration</button>
+        <button className="provider-btn">List of Users</button>
+        <button className="provider-btn">Add/Withdraw Balance</button>
+        <button className="provider-btn">Transaction History Players</button>
+        <button className="provider-btn">Transaction History Account</button>
+      </div>
+    </div>
+  );
+}
+
+// واجهة الأدمن مؤقتًا
+function AdminDashboard({ user, onLogout }) {
+  const [showPassEdit, setShowPassEdit] = useState(false);
+  const [newPass, setNewPass] = useState("");
+  const [msg, setMsg] = useState("");
+  // كلمة السر ثابتة في هذا النموذج (التعديل غير حقيقي لأنه Mock)
+  const handlePassChange = () => {
+    setMsg("تم تغيير كلمة السر (وهميًا)");
+    setTimeout(()=>setMsg(""), 2000);
+    setShowPassEdit(false);
+  };
+  return (
+    <div>
+      <header className="header header-black">
+        <span className="header-title">Admin</span>
+        <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
+          999,999,999 DZD
+        </span>
+        <button onClick={() => setShowPassEdit(true)} style={{ background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:6 }} title="تغيير كلمة السر">⚙️</button>
+        <button onClick={onLogout} style={{ color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:2}}>⏻</button>
+      </header>
+      <div style={{padding: '22px 6px 0 6px'}}>
+        <button className="provider-btn">Add Shop</button>
+        <button className="provider-btn">Add/Withdraw Balance</button>
+        <button className="provider-btn">Transaction History</button>
+        <button className="provider-btn">Delete Shop</button>
+      </div>
+      {showPassEdit && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:320}}>
+            <h4>تغيير كلمة السر</h4>
+            <input
+              type="password"
+              placeholder="كلمة السر الجديدة"
+              value={newPass}
+              onChange={e=>setNewPass(e.target.value)}
+              autoFocus
+            />
+            <button className="login-btn" onClick={handlePassChange}>تأكيد</button>
+            <button className="login-btn" style={{background:'#ccc', color:'#222'}} onClick={()=>setShowPassEdit(false)}>إلغاء</button>
+            {msg && <div className="login-error" style={{color:'#080'}}>{msg}</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function App() {
   // سلايدر الصور
@@ -89,6 +160,25 @@ function App() {
   // اختيار رهان (للتوضيح فقط)
   const [selectedBet, setSelectedBet] = useState(null);
 
+  // نظام الدخول
+  const [auth, setAuth] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
+
+  // زر تسجيل الخروج
+  const handleLogout = () => {
+    setAuth(null);
+    setShowLogin(false);
+  };
+
+  // في حال مزود
+  if (auth?.role === "provider") {
+    return <ProviderDashboard user={auth} onLogout={handleLogout} />;
+  }
+  // في حال الأدمن
+  if (auth?.role === "admin") {
+    return <AdminDashboard user={auth} onLogout={handleLogout} />;
+  }
+  // في حال لاعب أو زائر عادي
   return (
     <div className="main-wrapper" style={{background:"#fff"}}>
       {/* Header */}
@@ -168,7 +258,7 @@ function App() {
           <FaHome size={28} />
           <span>Home</span>
         </div>
-        <div className="nav-btn">
+        <div className="nav-btn" onClick={() => setShowLogin(true)}>
           <FaSignInAlt size={28} />
           <span>Login</span>
         </div>
@@ -177,6 +267,10 @@ function App() {
           <span>Paris Sportif</span>
         </div>
       </nav>
+      {/* نافذة الدخول */}
+      {showLogin && !auth && (
+        <AuthSystem onLogin={(acc) => { setAuth(acc); setShowLogin(false); }} />
+      )}
     </div>
   );
 }
