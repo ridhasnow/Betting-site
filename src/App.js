@@ -4,6 +4,7 @@ import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-i
 import { GiSpinningWheel } from "react-icons/gi";
 import { MdOutlineSportsSoccer } from "react-icons/md";
 import AuthSystem from "./AuthSystem";
+import { addProvider } from "./providersService"; // أضف هذا السطر لاستيراد خدمة إضافة المزودين
 
 // صور السلايدر
 const sliderImages = [
@@ -65,17 +66,36 @@ function ProviderDashboard({ user, onLogout }) {
   );
 }
 
-// واجهة الأدمن مؤقتًا
+// واجهة الأدمن مع نافذة إضافة مزود جديدة
 function AdminDashboard({ user, onLogout }) {
   const [showPassEdit, setShowPassEdit] = useState(false);
   const [newPass, setNewPass] = useState("");
   const [msg, setMsg] = useState("");
+  const [showAddShop, setShowAddShop] = useState(false);
+  const [shopUsername, setShopUsername] = useState("");
+  const [shopPassword, setShopPassword] = useState("");
+  const [addShopError, setAddShopError] = useState("");
+  const [addShopSuccess, setAddShopSuccess] = useState("");
+
   // كلمة السر ثابتة في هذا النموذج (التعديل غير حقيقي لأنه Mock)
   const handlePassChange = () => {
     setMsg("تم تغيير كلمة السر (وهميًا)");
     setTimeout(()=>setMsg(""), 2000);
     setShowPassEdit(false);
   };
+
+  // إضافة مزود جديد عبر Firestore
+  const handleAddShop = async () => {
+    setAddShopError(""); setAddShopSuccess("");
+    try {
+      await addProvider(shopUsername.trim(), shopPassword);
+      setAddShopSuccess("تم إضافة المزود بنجاح!");
+      setShopUsername(""); setShopPassword("");
+    } catch (e) {
+      setAddShopError(e.message);
+    }
+  };
+
   return (
     <div>
       <header className="header header-black">
@@ -87,7 +107,7 @@ function AdminDashboard({ user, onLogout }) {
         <button onClick={onLogout} style={{ color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:2}}>⏻</button>
       </header>
       <div style={{padding: '22px 6px 0 6px'}}>
-        <button className="provider-btn">Add Shop</button>
+        <button className="provider-btn" onClick={() => setShowAddShop(true)}>Add Shop</button>
         <button className="provider-btn">Add/Withdraw Balance</button>
         <button className="provider-btn">Transaction History</button>
         <button className="provider-btn">Delete Shop</button>
@@ -106,6 +126,31 @@ function AdminDashboard({ user, onLogout }) {
             <button className="login-btn" onClick={handlePassChange}>تأكيد</button>
             <button className="login-btn" style={{background:'#ccc', color:'#222'}} onClick={()=>setShowPassEdit(false)}>إلغاء</button>
             {msg && <div className="login-error" style={{color:'#080'}}>{msg}</div>}
+          </div>
+        </div>
+      )}
+      {/* نافذة إضافة مزود */}
+      {showAddShop && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:340}}>
+            <h4>إنشاء حساب مزود جديد</h4>
+            <input
+              type="text"
+              placeholder="اسم المستخدم (حروف أو أرقام)"
+              value={shopUsername}
+              onChange={e => setShopUsername(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="password"
+              placeholder="كلمة المرور (6 أحرف أو أكثر)"
+              value={shopPassword}
+              onChange={e => setShopPassword(e.target.value)}
+            />
+            {addShopError && <div className="login-error">{addShopError}</div>}
+            {addShopSuccess && <div style={{color:'#080',fontWeight:'bold',margin:'6px 0'}}>{addShopSuccess}</div>}
+            <button className="login-btn" onClick={handleAddShop}>إنشاء</button>
+            <button className="login-btn" style={{background:'#ccc',color:'#222'}} onClick={()=>setShowAddShop(false)}>إلغاء</button>
           </div>
         </div>
       )}
