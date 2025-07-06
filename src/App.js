@@ -1,394 +1,23 @@
 import React, { useState, useEffect } from "react";
-import "./App.css";
-import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-icons/fa";
-import { GiSpinningWheel } from "react-icons/gi";
-import { MdOutlineSportsSoccer } from "react-icons/md";
 import AuthSystem from "./AuthSystem";
 import {
+  addProvider,
   getAllProviders,
+  updateProviderBalance,
+  suspendProvider,
+  getProviderPlayers,
+  addPlayerToProvider,
+  updatePlayerBalance,
 } from "./providersService";
+import {
+  addAdminProviderTransaction,
+  getAdminProviderTransactions,
+  addProviderPlayerTransaction,
+  getProviderPlayerTransactions,
+} from "./transactionsService";
+import { MdLogout, MdVisibility, MdVisibilityOff } from "react-icons/md";
 
-// صور السلايدر
-const sliderImages = [
-  "/bet-affiche.png",
-  "/bet-affiche2.png",
-  "/bet-affiche3.png"
-];
-
-// بيانات المربعات
-const gridButtons = [
-  {
-    title: "Paris En Ligne",
-    icon: <MdOutlineSportsSoccer size={40} color="#FFF" />,
-    live: true,
-  },
-  {
-    title: "Jeux De Casino",
-    icon: <FaDice size={40} color="#FFF" />,
-  },
-  {
-    title: "Paris Sportif",
-    icon: <FaFutbol size={40} color="#FFF" />,
-  },
-  {
-    title: "Jeux Virtuels",
-    icon: <FaGamepad size={40} color="#FFF" />,
-  },
-  {
-    title: "Roue de la Fortune",
-    icon: <GiSpinningWheel size={40} color="#FFF" />,
-  },
-  {
-    title: "Casino En Direct",
-    icon: <FaGem size={40} color="#FFF" />,
-  },
-];
-
-const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
-
-// واجهة مزود
-function ProviderDashboard({ user, onLogout }) {
-  return (
-    <div>
-      <header className="header header-black">
-        <span className="header-title">{user.username}</span>
-        <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
-          {user.balance ?? 0} TND
-        </span>
-        <button onClick={onLogout} style={{marginLeft:"auto", color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer"}}>⏻</button>
-      </header>
-      <div style={{padding: '22px 6px 0 6px'}}>
-        <button className="provider-btn">New User Registration</button>
-        <button className="provider-btn">List of Users</button>
-        <button className="provider-btn">Add/Withdraw Balance</button>
-        <button className="provider-btn">Transaction History Players</button>
-        <button className="provider-btn">Transaction History Account</button>
-      </div>
-    </div>
-  );
-}
-
-// واجهة الأدمن الجديدة
-function AdminDashboard({ user, onLogout }) {
-  const [showPassEdit, setShowPassEdit] = useState(false);
-  const [newPass, setNewPass] = useState("");
-  const [msg, setMsg] = useState("");
-
-  // نافذة إضافة مزود (نفس القديم)
-  const [showAddShop, setShowAddShop] = useState(false);
-  const [shopUsername, setShopUsername] = useState("");
-  const [shopPassword, setShopPassword] = useState("");
-  const [addShopError, setAddShopError] = useState("");
-  const [addShopSuccess, setAddShopSuccess] = useState("");
-
-  // قوائم التحكم
-  const [showBalance, setShowBalance] = useState(false);
-  const [showSuspend, setShowSuspend] = useState(false);
-
-  // بيانات المزودين
-  const [providers, setProviders] = useState([]);
-  const [loadingProviders, setLoadingProviders] = useState(false);
-  const [errProviders, setErrProviders] = useState("");
-
-  // حالة التعديل الفردي
-  const [balanceEdit, setBalanceEdit] = useState({}); // { [providerId]: { type: "add"|"sub", value: "" } }
-
-  // جلب قائمة المزودين
-  const fetchProviders = async () => {
-    setLoadingProviders(true); setErrProviders("");
-    try {
-      const data = await getAllProviders();
-      setProviders(data);
-    } catch(e) {
-      setErrProviders("خطأ في جلب المزودين!");
-    }
-    setLoadingProviders(false);
-  };
-
-  useEffect(() => {
-    if (showBalance || showSuspend) fetchProviders();
-    // Reset edit state
-    setBalanceEdit({});
-  }, [showBalance, showSuspend]);
-
-  // تغيير كلمة السر (وهمي)
-  const handlePassChange = () => {
-    setMsg("تم تغيير كلمة السر (وهميًا)");
-    setTimeout(()=>setMsg(""), 2000);
-    setShowPassEdit(false);
-  };
-
-  // إضافة مزود (نفس القديم)
-  const handleAddShop = async () => {
-    setAddShopError(""); setAddShopSuccess("");
-    try {
-      // استدعاء دالة addProvider من providersService.js
-      const { addProvider } = await import("./providersService");
-      await addProvider(shopUsername.trim(), shopPassword);
-      setAddShopSuccess("تم إضافة المزود بنجاح!");
-      setShopUsername(""); setShopPassword("");
-    } catch (e) {
-      setAddShopError(e.message);
-    }
-  };
-
-  // تعديل الرصيد (إضافة/سحب)
-  const handleBalanceChange = async (id, type) => {
-    const value = balanceEdit[id]?.value;
-    if (!value || isNaN(Number(value))) {
-      alert("أدخل رقم صحيح!");
-      return;
-    }
-    try {
-      // استدعاء دالة updateProviderBalance من providersService.js
-      const { updateProviderBalance } = await import("./providersService");
-      await updateProviderBalance(id, Number(value), type); // type: "add" or "sub"
-      setBalanceEdit(edit => ({ ...edit, [id]: undefined }));
-      fetchProviders();
-    } catch (e) {
-      alert("حدث خطأ أثناء تعديل الرصيد");
-    }
-  };
-
-  // تعليق/إلغاء تعليق
-  const handleSuspend = async (id, isSuspended) => {
-    try {
-      const { suspendProvider } = await import("./providersService");
-      await suspendProvider(id, isSuspended);
-      fetchProviders();
-    } catch (e) {
-      alert("خطأ في التعليق/التفعيل");
-    }
-  };
-
-  // واجهة الأدمن الكاملة
-  return (
-    <div>
-      <header className="header header-black">
-        <span className="header-title">Admin</span>
-        <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
-          999,999,999 TND
-        </span>
-        <button onClick={() => setShowPassEdit(true)} style={{ background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:6 }} title="تغيير كلمة السر">⚙️</button>
-        <button onClick={onLogout} style={{ color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:2}}>⏻</button>
-      </header>
-      <div style={{padding: '22px 6px 0 6px'}}>
-        <button className="provider-btn" onClick={() => setShowAddShop(true)}>Add Shop</button>
-        <button className="provider-btn" onClick={() => setShowBalance(true)}>Add/Withdraw Balance</button>
-        <button className="provider-btn">Transaction History</button>
-        <button className="provider-btn" onClick={() => setShowSuspend(true)}>Delete Shop</button>
-      </div>
-      {showPassEdit && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:320}}>
-            <h4>تغيير كلمة السر</h4>
-            <input
-              type="password"
-              placeholder="كلمة السر الجديدة"
-              value={newPass}
-              onChange={e=>setNewPass(e.target.value)}
-              autoFocus
-            />
-            <button className="login-btn" onClick={handlePassChange}>تأكيد</button>
-            <button className="login-btn" style={{background:'#ccc', color:'#222'}} onClick={()=>setShowPassEdit(false)}>إلغاء</button>
-            {msg && <div className="login-error" style={{color:'#080'}}>{msg}</div>}
-          </div>
-        </div>
-      )}
-      {/* نافذة إضافة مزود */}
-      {showAddShop && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:340}}>
-            <h4>إنشاء حساب مزود جديد</h4>
-            <input
-              type="text"
-              placeholder="اسم المستخدم (حروف أو أرقام)"
-              value={shopUsername}
-              onChange={e => setShopUsername(e.target.value)}
-              autoFocus
-            />
-            <input
-              type="password"
-              placeholder="كلمة المرور (6 أحرف أو أكثر)"
-              value={shopPassword}
-              onChange={e => setShopPassword(e.target.value)}
-            />
-            {addShopError && <div className="login-error">{addShopError}</div>}
-            {addShopSuccess && <div style={{color:'#080',fontWeight:'bold',margin:'6px 0'}}>{addShopSuccess}</div>}
-            <button className="login-btn" onClick={handleAddShop}>إنشاء</button>
-            <button className="login-btn" style={{background:'#ccc',color:'#222'}} onClick={()=>setShowAddShop(false)}>إلغاء</button>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة تحكم الرصيد */}
-      {showBalance && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:500}}>
-            <h4>قائمة المزودين (تحكم في الرصيد)</h4>
-            {loadingProviders ? <div>جاري التحميل...</div> :
-              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
-              <table style={{width:"100%", fontSize:"1em", borderCollapse:"collapse"}}>
-                <thead>
-                  <tr>
-                    <th>الاسم</th>
-                    <th>الرصيد</th>
-                    <th colSpan={2}>تحكم</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {providers.map(p=>(
-                    <tr key={p.id} style={{opacity: p.suspended ? 0.5 : 1}}>
-                      <td>{p.username}</td>
-                      <td>{p.balance}</td>
-                      <td>
-                        {/* زر زائد */}
-                        <button
-                          style={{
-                            background:"#09c178",
-                            color:"#fff",
-                            border:"none",
-                            borderRadius:"50%",
-                            width:32, height:32,
-                            fontSize:22,
-                            marginRight:8,
-                            cursor:"pointer"
-                          }}
-                          title="إضافة رصيد"
-                          onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: { type: "add", value: "" } }))}
-                          disabled={p.suspended}
-                        >+</button>
-                        {/* حقل إدخال للزائد */}
-                        {balanceEdit[p.id]?.type==="add" && (
-                          <span style={{marginRight:6}}>
-                            <input
-                              type="number"
-                              min="1"
-                              style={{width:70, marginRight:4}}
-                              value={balanceEdit[p.id].value}
-                              placeholder="المبلغ"
-                              onChange={e =>
-                                setBalanceEdit(edit=>({
-                                  ...edit,
-                                  [p.id]: { ...edit[p.id], value: e.target.value }
-                                }))
-                              }
-                            />
-                            <button
-                              className="login-btn"
-                              style={{padding:"3px 10px", fontSize:14}}
-                              onClick={()=>handleBalanceChange(p.id, "add")}
-                            >تأكيد</button>
-                            <button
-                              className="login-btn"
-                              style={{padding:"3px 10px", fontSize:14, background:"#ccc", color:"#222"}}
-                              onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: undefined }))}
-                            >X</button>
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {/* زر ناقص */}
-                        <button
-                          style={{
-                            background:"#e53935",
-                            color:"#fff",
-                            border:"none",
-                            borderRadius:"50%",
-                            width:32, height:32,
-                            fontSize:22,
-                            marginRight:8,
-                            cursor:"pointer"
-                          }}
-                          title="سحب رصيد"
-                          onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: { type: "sub", value: "" } }))}
-                          disabled={p.suspended}
-                        >-</button>
-                        {/* حقل إدخال للناقص */}
-                        {balanceEdit[p.id]?.type==="sub" && (
-                          <span style={{marginRight:6}}>
-                            <input
-                              type="number"
-                              min="1"
-                              style={{width:70, marginRight:4}}
-                              value={balanceEdit[p.id].value}
-                              placeholder="المبلغ"
-                              onChange={e =>
-                                setBalanceEdit(edit=>({
-                                  ...edit,
-                                  [p.id]: { ...edit[p.id], value: e.target.value }
-                                }))
-                              }
-                            />
-                            <button
-                              className="login-btn"
-                              style={{padding:"3px 10px", fontSize:14}}
-                              onClick={()=>handleBalanceChange(p.id, "sub")}
-                            >تأكيد</button>
-                            <button
-                              className="login-btn"
-                              style={{padding:"3px 10px", fontSize:14, background:"#ccc", color:"#222"}}
-                              onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: undefined }))}
-                            >X</button>
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            }
-            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowBalance(false)}>إغلاق</button>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة تعليق الحسابات */}
-      {showSuspend && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:410}}>
-            <h4>قائمة المزودين (تعليق/تفعيل الحسابات)</h4>
-            {loadingProviders ? <div>جاري التحميل...</div> :
-              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
-              <table style={{width:"100%", fontSize:"1em"}}>
-                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
-                <tbody>
-                  {providers.map(p=>(
-                    <tr key={p.id}>
-                      <td>{p.username}</td>
-                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
-                      <td>
-                        <button
-                          style={{
-                            background: p.suspended ? "#09c178" : "#e53935",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 6,
-                            padding: "4px 12px",
-                            fontWeight:"bold",
-                            fontSize:15,
-                            cursor:"pointer"
-                          }}
-                          onClick={()=>handleSuspend(p.id, !p.suspended)}
-                        >
-                          {p.suspended ? "تفعيل" : "تعليق"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            }
-            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-// الحساب الإداري الثابت
+// حساب الأدمن الثابت
 const ADMIN_ACCOUNT = {
   username: "ridhasnow",
   password: "azerty12345",
@@ -396,166 +25,559 @@ const ADMIN_ACCOUNT = {
   balance: 999999999,
 };
 
-function App() {
-  // سلايدر الصور
-  const [current, setCurrent] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % sliderImages.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
+export default function App() {
+  // الجلسة
+  const [user, setUser] = useState(null);
 
-  // فتح قائمة مباريات لايف
-  const [showLive, setShowLive] = useState(false);
-
-  // جلب مباريات اليوم من football-data.org
-  const [liveMatches, setLiveMatches] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (showLive) {
-      setLoading(true);
-      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
-        headers: {
-          "X-Auth-Token": FOOTBALL_API_KEY,
-        },
-      })
-        .then(res => res.json())
-        .then(data => {
-          const matches = (data.matches || []).slice(0, 10).map(ev => ({
-            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
-            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
-            odds: [
-              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
-              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
-              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
-              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
-              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
-            ],
-          }));
-          setLiveMatches(matches);
-          setLoading(false);
-        });
-    }
-  }, [showLive]);
-
-  // اختيار رهان (للتوضيح فقط)
-  const [selectedBet, setSelectedBet] = useState(null);
-
-  // نظام الدخول
-  const [auth, setAuth] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
-
-  // زر تسجيل الخروج
-  const handleLogout = () => {
-    setAuth(null);
-    setShowLogin(false);
+  // عند تسجيل الدخول
+  const handleLogin = (userData) => {
+    setUser(userData);
+    window.localStorage.setItem("sessionUser", JSON.stringify(userData));
   };
 
-  // في حال مزود
-  if (auth?.role === "provider") {
-    return <ProviderDashboard user={auth} onLogout={handleLogout} />;
-  }
-  // في حال الأدمن
-  if (auth?.role === "admin") {
-    return <AdminDashboard user={auth} onLogout={handleLogout} />;
-  }
-  // في حال لاعب أو زائر عادي
-  return (
-    <div className="main-wrapper" style={{background:"#fff"}}>
-      {/* Header */}
-      <header className="header header-black">
-        <span className="header-title">Accueil</span>
-        <img src="/cazabet.png" alt="Cazabet Logo" className="header-logo" />
-      </header>
+  // إعادة الجلسة
+  useEffect(() => {
+    const u = window.localStorage.getItem("sessionUser");
+    if (u) setUser(JSON.parse(u));
+  }, []);
 
-      {/* Slider */}
-      <div className="slider-holder">
-        <img
-          src={sliderImages[current]}
-          alt="affiche"
-          className="slider-img"
-        />
+  // تسجيل الخروج (يدوي فقط)
+  const handleLogout = () => {
+    setUser(null);
+    window.localStorage.removeItem("sessionUser");
+  };
+
+  // واجهة الأدمن
+  if (user && user.role === "admin") return <AdminDashboard admin={user} onLogout={handleLogout} />;
+
+  // واجهة المزود
+  if (user && user.role === "provider") return <ProviderDashboard provider={user} onLogout={handleLogout} />;
+
+  // واجهة اللاعب
+  if (user && user.role === "player") return <PlayerDashboard player={user} onLogout={handleLogout} />;
+
+  // شاشة الدخول
+  return <AuthSystem onLogin={handleLogin} />;
+}
+
+// ========== Admin Dashboard ==========
+function AdminDashboard({ admin, onLogout }) {
+  // مزودين
+  const [providers, setProviders] = useState([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [errProviders, setErrProviders] = useState("");
+  // إضافة مزود
+  const [showAdd, setShowAdd] = useState(false);
+  const [addUser, setAddUser] = useState("");
+  const [addPass, setAddPass] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [addErr, setAddErr] = useState("");
+  // رصيد مزود
+  const [showBalance, setShowBalance] = useState(false);
+  const [balanceId, setBalanceId] = useState("");
+  const [balanceType, setBalanceType] = useState("add");
+  const [balanceVal, setBalanceVal] = useState("");
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceErr, setBalanceErr] = useState("");
+  // تعليق مزود
+  const [suspLoading, setSuspLoading] = useState("");
+  // سجل التحويلات الأدمن
+  const [showTransHistory, setShowTransHistory] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState(null);
+  const [providerTransactions, setProviderTransactions] = useState([]);
+  const [loadingTrans, setLoadingTrans] = useState(false);
+
+  // جلب المزودين
+  const fetchProviders = async () => {
+    setLoadingProviders(true);
+    setErrProviders("");
+    try {
+      const data = await getAllProviders();
+      setProviders(data);
+    } catch (e) {
+      setErrProviders("فشل تحميل المزودين");
+    }
+    setLoadingProviders(false);
+  };
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  // إضافة مزود
+  const handleAddProvider = async (e) => {
+    e.preventDefault();
+    if (!addUser.trim() || !addPass) {
+      setAddErr("أدخل اسم مستخدم وكلمة سر");
+      return;
+    }
+    setAddLoading(true);
+    setAddErr("");
+    try {
+      await addProvider(addUser.trim(), addPass);
+      setAddUser(""); setAddPass(""); setShowAdd(false);
+      fetchProviders();
+    } catch (e) {
+      setAddErr("خطأ: " + e.message);
+    }
+    setAddLoading(false);
+  };
+
+  // رصيد مزود
+  const openBalance = (id, type) => {
+    setBalanceId(id);
+    setBalanceType(type);
+    setBalanceVal("");
+    setBalanceErr("");
+    setShowBalance(true);
+  };
+  const handleBalanceChange = async (e) => {
+    e.preventDefault();
+    if (!balanceVal || isNaN(balanceVal) || Number(balanceVal) <= 0) {
+      setBalanceErr("أدخل مبلغ صحيح");
+      return;
+    }
+    setBalanceLoading(true);
+    setBalanceErr("");
+    try {
+      await updateProviderBalance(balanceId, Number(balanceVal), balanceType);
+      // سجل العملية
+      await addAdminProviderTransaction({
+        providerId: balanceId,
+        amount: Number(balanceVal),
+        type: balanceType,
+      });
+      setShowBalance(false);
+      fetchProviders();
+    } catch (e) {
+      setBalanceErr("خطأ: " + e.message);
+    }
+    setBalanceLoading(false);
+  };
+
+  // تعليق
+  const handleSuspend = async (id, isSusp) => {
+    setSuspLoading(id);
+    await suspendProvider(id, isSusp);
+    fetchProviders();
+    setSuspLoading("");
+  };
+
+  // سجل التحويلات مع مزود
+  const openTrans = async (provId) => {
+    setSelectedProviderId(provId);
+    setLoadingTrans(true);
+    const data = await getAdminProviderTransactions(provId);
+    setProviderTransactions(data);
+    setLoadingTrans(false);
+  };
+
+  return (
+    <div>
+      <div className="header header-black">
+        <span className="header-title">لوحة الأدمن</span>
+        <button className="provider-btn" style={{ width: 120, margin: 0 }} onClick={onLogout}>
+          <MdLogout size={22} /> خروج
+        </button>
       </div>
 
-      {/* Grid */}
-      <main className="grid-container grid-3">
-        {gridButtons.map((btn, idx) => (
-          <div
-            className={`grid-item grid-blue`}
-            key={idx}
-            onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
-          >
-            <div className="icon-holder">
-              {btn.icon}
-              {btn.live && (
-                <span className="live-dot" />
-              )}
-            </div>
-            <div className="title">{btn.title}</div>
-          </div>
-        ))}
-      </main>
+      <button className="provider-btn" onClick={() => setShowAdd(true)}>إضافة مزود جديد</button>
+      <button className="provider-btn" style={{background:"#444"}} onClick={() => setShowTransHistory(true)}>
+        سجل التحويلات (transaction history)
+      </button>
 
-      {/* Pop-up Live Matches */}
-      {showLive && (
-        <div className="live-popup">
-          <div className="live-popup-content">
-            <h3>Live Matches</h3>
-            <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
-            {loading ? (
-              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
-            ) : (
-              <div className="live-matches-list">
-                {liveMatches.map((match, i) => (
-                  <div className="live-match-row" key={i}>
-                    <div className="teams">{match.teams}</div>
-                    <div className="time">{match.time}</div>
-                    <div className="odds">
-                      {match.odds.map((odd, j) => (
-                        <button
-                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
-                          key={j}
-                          onClick={() => setSelectedBet(`${i}-${j}`)}
-                        >
-                          {odd.label}
-                          <span>{odd.value}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {liveMatches.length === 0 && (
-                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
-                )}
-              </div>
-            )}
+      <h3 style={{margin:"20px 0 5px 0"}}>المزودون:</h3>
+      {loadingProviders ? <div>جاري التحميل...</div> :
+        errProviders ? <div style={{ color: 'red' }}>{errProviders}</div> :
+        <table style={{ width: "100%", fontSize: "1em", direction:"rtl" }}>
+          <thead><tr>
+            <th>اسم المستخدم</th><th>الرصيد (TND)</th>
+            <th>تحكم الرصيد</th>
+            <th>تعليق/إلغاء</th>
+          </tr></thead>
+          <tbody>
+            {providers.map(p => (
+              <tr key={p.id} style={{opacity:p.suspended ? 0.5 : 1}}>
+                <td>{p.username}</td>
+                <td>{p.balance}</td>
+                <td>
+                  <button className="login-btn" style={{padding:"2px 7px", fontSize:14}} onClick={()=>openBalance(p.id,"add")}>شحن</button>
+                  <button className="login-btn" style={{padding:"2px 7px", fontSize:14, background:"#b31d1d"}} onClick={()=>openBalance(p.id,"sub")}>سحب</button>
+                </td>
+                <td>
+                  <button className="login-btn" style={{padding:"2px 7px", fontSize:14, background:p.suspended?"#2176c1":"#b31d1d"}}
+                    onClick={()=>handleSuspend(p.id,!p.suspended)} disabled={suspLoading===p.id}>
+                    {p.suspended ? "إلغاء تعليق" : "تعليق"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
+
+      {/* نافذة إضافة مزود */}
+      {showAdd && (
+        <div className="modal-bg">
+          <div className="modal-login">
+            <h4>إضافة مزود جديد</h4>
+            <form onSubmit={handleAddProvider}>
+              <input type="text" placeholder="اسم المستخدم" value={addUser} onChange={e=>setAddUser(e.target.value)} />
+              <input type="password" placeholder="كلمة السر" value={addPass} onChange={e=>setAddPass(e.target.value)} />
+              {addErr && <div style={{color:"red"}}>{addErr}</div>}
+              <button className="login-btn" type="submit" disabled={addLoading}>{addLoading ? "..." : "إضافة"}</button>
+            </form>
+            <button className="close-btn" style={{position:"absolute",top:8,right:16}} onClick={()=>setShowAdd(false)}>×</button>
           </div>
         </div>
       )}
 
-      {/* Bottom navigation */}
-      <nav className="bottom-nav">
-        <div className="nav-btn">
-          <FaHome size={28} />
-          <span>Home</span>
+      {/* نافذة شحن/سحب */}
+      {showBalance && (
+        <div className="modal-bg">
+          <div className="modal-login">
+            <h4>{balanceType==="add"?"شحن رصيد مزود":"سحب رصيد من مزود"}</h4>
+            <form onSubmit={handleBalanceChange}>
+              <input type="number" placeholder="المبلغ (TND)" value={balanceVal} onChange={e=>setBalanceVal(e.target.value)} />
+              {balanceErr && <div style={{color:"red"}}>{balanceErr}</div>}
+              <button className="login-btn" type="submit" disabled={balanceLoading}>{balanceLoading ? "..." : (balanceType==="add"?"شحن":"سحب")}</button>
+            </form>
+            <button className="close-btn" style={{position:"absolute",top:8,right:16}} onClick={()=>setShowBalance(false)}>×</button>
+          </div>
         </div>
-        <div className="nav-btn" onClick={() => setShowLogin(true)}>
-          <FaSignInAlt size={28} />
-          <span>Login</span>
+      )}
+
+      {/* نافذة سجل التحويلات مع جميع المزودين */}
+      {showTransHistory && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{ maxWidth: 410 }}>
+            <h4>سجل المعاملات مع المزودين</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{ color: 'red' }}>{errProviders}</div> :
+              <table style={{ width: "100%", fontSize: "1em" }}>
+                <thead><tr><th>الاسم</th><th>الرصيد</th><th>سجل التحويلات</th></tr></thead>
+                <tbody>
+                  {providers.map(p => (
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.balance}</td>
+                      <td>
+                        <button
+                          className="login-btn"
+                          style={{ padding: "2px 10px", fontSize: 14 }}
+                          onClick={() => openTrans(p.id)}
+                        >
+                          voir
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{ marginTop: 10 }} onClick={() => setShowTransHistory(false)}>×</button>
+          </div>
+
+          {/* نافذة سجل معاملات مزود معين */}
+          {selectedProviderId && (
+            <div className="modal-bg">
+              <div className="modal-login" style={{ maxWidth: 420 }}>
+                <h4>سجل مزود</h4>
+                <button className="close-btn" style={{position:"absolute", top:8, right:16, fontSize:22}} onClick={() => setSelectedProviderId(null)}>×</button>
+                {loadingTrans ? (
+                  <div>جاري التحميل...</div>
+                ) : providerTransactions.length === 0 ? (
+                  <div style={{ color: "#888" }}>لا يوجد معاملات</div>
+                ) : (
+                  <table style={{ width: "100%", fontSize: "1em" }}>
+                    <thead>
+                      <tr>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>المبلغ (TND)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {providerTransactions.map(tr => (
+                        <tr key={tr.id}>
+                          <td>{new Date(tr.createdAt).toLocaleString()}</td>
+                          <td style={{ color: tr.type === "add" ? "green" : "red", fontWeight: "bold" }}>
+                            {tr.type === "add" ? "+" : "-"}
+                          </td>
+                          <td>{tr.amount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="nav-btn">
-          <FaFutbol size={28} />
-          <span>Paris Sportif</span>
+      )}
+
+    </div>
+  );
+}
+
+// ========== Provider Dashboard ==========
+function ProviderDashboard({ provider, onLogout }) {
+  // لاعبين المزود
+  const [players, setPlayers] = useState([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [errPlayers, setErrPlayers] = useState("");
+  // إضافة لاعب
+  const [showAdd, setShowAdd] = useState(false);
+  const [addUser, setAddUser] = useState("");
+  const [addPass, setAddPass] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [addErr, setAddErr] = useState("");
+  // رصيد لاعب
+  const [showBalance, setShowBalance] = useState(false);
+  const [balanceId, setBalanceId] = useState("");
+  const [balanceType, setBalanceType] = useState("add");
+  const [balanceVal, setBalanceVal] = useState("");
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceErr, setBalanceErr] = useState("");
+  // سجل التحويلات
+  const [showTransHistory, setShowTransHistory] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [playerTransactions, setPlayerTransactions] = useState([]);
+  const [loadingTrans, setLoadingTrans] = useState(false);
+
+  // جلب اللاعبين
+  const fetchPlayers = async () => {
+    setLoadingPlayers(true);
+    setErrPlayers("");
+    try {
+      const data = await getProviderPlayers(provider.id);
+      setPlayers(data);
+    } catch (e) {
+      setErrPlayers("فشل تحميل اللاعبين");
+    }
+    setLoadingPlayers(false);
+  };
+  useEffect(() => {
+    fetchPlayers();
+  }, [provider.id]);
+
+  // إضافة لاعب
+  const handleAddPlayer = async (e) => {
+    e.preventDefault();
+    if (!addUser.trim() || !addPass) {
+      setAddErr("أدخل اسم مستخدم وكلمة سر");
+      return;
+    }
+    setAddLoading(true);
+    setAddErr("");
+    try {
+      await addPlayerToProvider(provider.id, addUser.trim(), addPass);
+      setAddUser(""); setAddPass(""); setShowAdd(false);
+      fetchPlayers();
+    } catch (e) {
+      setAddErr("خطأ: " + e.message);
+    }
+    setAddLoading(false);
+  };
+
+  // رصيد لاعب
+  const openBalance = (id, type) => {
+    setBalanceId(id);
+    setBalanceType(type);
+    setBalanceVal("");
+    setBalanceErr("");
+    setShowBalance(true);
+  };
+  const handleBalanceChange = async (e) => {
+    e.preventDefault();
+    if (!balanceVal || isNaN(balanceVal) || Number(balanceVal) <= 0) {
+      setBalanceErr("أدخل مبلغ صحيح");
+      return;
+    }
+    setBalanceLoading(true);
+    setBalanceErr("");
+    try {
+      await updatePlayerBalance(balanceId, Number(balanceVal), balanceType);
+      // سجل العملية
+      await addProviderPlayerTransaction({
+        providerId: provider.id,
+        playerId: balanceId,
+        amount: Number(balanceVal),
+        type: balanceType,
+      });
+      setShowBalance(false);
+      fetchPlayers();
+    } catch (e) {
+      setBalanceErr("خطأ: " + e.message);
+    }
+    setBalanceLoading(false);
+  };
+
+  // سجل التحويلات مع لاعب
+  const openTrans = async (playerId) => {
+    setSelectedPlayerId(playerId);
+    setLoadingTrans(true);
+    const data = await getProviderPlayerTransactions(provider.id, playerId);
+    setPlayerTransactions(data);
+    setLoadingTrans(false);
+  };
+
+  return (
+    <div>
+      <div className="header header-black">
+        <span className="header-title">لوحة المزود</span>
+        <span style={{fontWeight:"bold",fontSize:"1.1em",marginRight:10}}>الرصيد: {provider.balance} TND</span>
+        <button className="provider-btn" style={{ width: 120, margin: 0 }} onClick={onLogout}>
+          <MdLogout size={22} /> خروج
+        </button>
+      </div>
+
+      <button className="provider-btn" onClick={() => setShowAdd(true)}>إضافة لاعب جديد</button>
+      <button className="provider-btn" style={{background:"#444"}} onClick={() => setShowTransHistory(true)}>
+        سجل التحويلات (transaction history)
+      </button>
+
+      <h3 style={{margin:"20px 0 5px 0"}}>اللاعبون:</h3>
+      {loadingPlayers ? <div>جاري التحميل...</div> :
+        errPlayers ? <div style={{ color: 'red' }}>{errPlayers}</div> :
+        <table style={{ width: "100%", fontSize: "1em", direction:"rtl" }}>
+          <thead><tr>
+            <th>اسم المستخدم</th><th>الرصيد (TND)</th>
+            <th>تحكم الرصيد</th>
+          </tr></thead>
+          <tbody>
+            {players.map(p => (
+              <tr key={p.id}>
+                <td>{p.username}</td>
+                <td>{p.balance}</td>
+                <td>
+                  <button className="login-btn" style={{padding:"2px 7px", fontSize:14}} onClick={()=>openBalance(p.id,"add")}>شحن</button>
+                  <button className="login-btn" style={{padding:"2px 7px", fontSize:14, background:"#b31d1d"}} onClick={()=>openBalance(p.id,"sub")}>سحب</button>
+                  <button className="login-btn" style={{padding:"2px 7px", fontSize:14, background:"#2176c1", marginRight:7}} onClick={()=>openTrans(p.id)}>سجل التحويلات</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
+
+      {/* نافذة إضافة لاعب */}
+      {showAdd && (
+        <div className="modal-bg">
+          <div className="modal-login">
+            <h4>إضافة لاعب جديد</h4>
+            <form onSubmit={handleAddPlayer}>
+              <input type="text" placeholder="اسم المستخدم" value={addUser} onChange={e=>setAddUser(e.target.value)} />
+              <input type="password" placeholder="كلمة السر" value={addPass} onChange={e=>setAddPass(e.target.value)} />
+              {addErr && <div style={{color:"red"}}>{addErr}</div>}
+              <button className="login-btn" type="submit" disabled={addLoading}>{addLoading ? "..." : "إضافة"}</button>
+            </form>
+            <button className="close-btn" style={{position:"absolute",top:8,right:16}} onClick={()=>setShowAdd(false)}>×</button>
+          </div>
         </div>
-      </nav>
-      {/* نافذة الدخول */}
-      {showLogin && !auth && (
-        <AuthSystem onLogin={(acc) => { setAuth(acc); setShowLogin(false); }} />
+      )}
+
+      {/* نافذة شحن/سحب */}
+      {showBalance && (
+        <div className="modal-bg">
+          <div className="modal-login">
+            <h4>{balanceType==="add"?"شحن رصيد لاعب":"سحب رصيد من لاعب"}</h4>
+            <form onSubmit={handleBalanceChange}>
+              <input type="number" placeholder="المبلغ (TND)" value={balanceVal} onChange={e=>setBalanceVal(e.target.value)} />
+              {balanceErr && <div style={{color:"red"}}>{balanceErr}</div>}
+              <button className="login-btn" type="submit" disabled={balanceLoading}>{balanceLoading ? "..." : (balanceType==="add"?"شحن":"سحب")}</button>
+            </form>
+            <button className="close-btn" style={{position:"absolute",top:8,right:16}} onClick={()=>setShowBalance(false)}>×</button>
+          </div>
+        </div>
+      )}
+
+      {/* سجل التحويلات لكل لاعب */}
+      {showTransHistory && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{ maxWidth: 410 }}>
+            <h4>سجل المعاملات مع اللاعبين</h4>
+            {loadingPlayers ? <div>جاري التحميل...</div> :
+              errPlayers ? <div style={{ color: 'red' }}>{errPlayers}</div> :
+              <table style={{ width: "100%", fontSize: "1em" }}>
+                <thead><tr><th>الاسم</th><th>الرصيد</th><th>سجل التحويلات</th></tr></thead>
+                <tbody>
+                  {players.map(p => (
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.balance}</td>
+                      <td>
+                        <button
+                          className="login-btn"
+                          style={{ padding: "2px 10px", fontSize: 14 }}
+                          onClick={() => openTrans(p.id)}
+                        >
+                          voir
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{ marginTop: 10 }} onClick={() => setShowTransHistory(false)}>×</button>
+          </div>
+
+          {/* نافذة سجل معاملات لاعب معين */}
+          {selectedPlayerId && (
+            <div className="modal-bg">
+              <div className="modal-login" style={{ maxWidth: 420 }}>
+                <h4>سجل لاعب</h4>
+                <button className="close-btn" style={{position:"absolute", top:8, right:16, fontSize:22}} onClick={() => setSelectedPlayerId(null)}>×</button>
+                {loadingTrans ? (
+                  <div>جاري التحميل...</div>
+                ) : playerTransactions.length === 0 ? (
+                  <div style={{ color: "#888" }}>لا يوجد معاملات</div>
+                ) : (
+                  <table style={{ width: "100%", fontSize: "1em" }}>
+                    <thead>
+                      <tr>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>المبلغ (TND)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {playerTransactions.map(tr => (
+                        <tr key={tr.id}>
+                          <td>{new Date(tr.createdAt).toLocaleString()}</td>
+                          <td style={{ color: tr.type === "add" ? "green" : "red", fontWeight: "bold" }}>
+                            {tr.type === "add" ? "+" : "-"}
+                          </td>
+                          <td>{tr.amount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-export default App;
+// ========== Player Dashboard ==========
+function PlayerDashboard({ player, onLogout }) {
+  return (
+    <div>
+      <div className="header header-black">
+        <span className="header-title">مرحبا {player.username}</span>
+        <span style={{fontWeight:"bold",fontSize:"1.1em",marginRight:10}}>الرصيد: {player.balance} TND</span>
+        <button className="provider-btn" style={{ width: 120, margin: 0 }} onClick={onLogout}>
+          <MdLogout size={22} /> خروج
+        </button>
+      </div>
+      <div style={{margin:"40px auto",textAlign:"center",fontSize:"1.2em",color:"#2176c1"}}>
+        يمكنك رؤية رصيدك في الأعلى.<br/>
+        إذا واجهتك مشكلة تواصل مع مزودك.
+      </div>
+    </div>
+  );
+}
