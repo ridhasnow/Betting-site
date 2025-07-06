@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import { FaHome, FaSignInAlt, FaFutbol } from "react-icons/fa";
+import {
+  FaHome,
+  FaSignInAlt,
+  FaFutbol,
+  FaStopwatch,
+  FaDice,
+  FaHorseHead,
+  FaChartLine,
+  FaGamepad,
+  FaTrophy
+} from "react-icons/fa";
+import { GiSlotMachine, GiSpinningWheel } from "react-icons/gi";
+import { SiAltiumdesigner } from "react-icons/si";
 import AuthSystem from "./AuthSystem";
 import ProviderDashboard from "./ProviderDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -18,11 +30,66 @@ const sliderImages = [
 // بيانات المربعات
 const gridButtons = [
   {
-    title: "Paris En Ligne",
-    icon: <FaFutbol size={40} color="#FFF" />,
-    live: true,
+    title: "Paris Sportifs",
+    icon: <FaChartLine size={56} color="#FFF" />,
+    key: "paris-sportifs"
   },
-  // ... باقي الأقسام كما عندك
+  {
+    title: "Paris En Ligne",
+    icon: <FaStopwatch size={56} color="#FFF" />,
+    live: true,
+    key: "paris-en-ligne"
+  },
+  {
+    title: "Altenar",
+    icon: <SiAltiumdesigner size={56} color="#FFF" />,
+    key: "altenar"
+  },
+  {
+    title: "Casino En Direct",
+    icon: <FaDice size={56} color="#FFF" />,
+    key: "casino-en-direct"
+  },
+  {
+    title: "Jeux De Casino",
+    icon: <GiSlotMachine size={56} color="#FFF" />,
+    key: "jeux-de-casino"
+  },
+  {
+    title: "Jeux Virtuels",
+    icon: <FaHorseHead size={56} color="#FFF" />,
+    key: "jeux-virtuels"
+  },
+  {
+    title: "Zeppelin",
+    icon: <img src="/zeppelin-logo.png" alt="Zeppelin" style={{width:56, height:56, objectFit:"contain"}} />,
+    key: "zeppelin"
+  },
+  {
+    title: "Dino",
+    icon: <img src="/dino-logo.png" alt="Dino" style={{width:56, height:56, objectFit:"contain"}} />,
+    key: "dino"
+  },
+  {
+    title: "Aviator",
+    icon: <img src="/aviator-logo.png" alt="Aviator" style={{width:56, height:56, objectFit:"contain"}} />,
+    key: "aviator"
+  },
+  {
+    title: "Smartsoft",
+    icon: <img src="/jetx-logo.png" alt="Smartsoft" style={{width:56, height:56, objectFit:"contain"}} />,
+    key: "smartsoft"
+  },
+  {
+    title: "Résultats",
+    icon: <FaTrophy size={56} color="#FFF" />,
+    key: "resultats"
+  },
+  {
+    title: "Roue De Bonus",
+    icon: <GiSpinningWheel size={56} color="#FFF" />,
+    key: "roue-de-bonus"
+  }
 ];
 
 const ADMIN_ACCOUNT = {
@@ -107,13 +174,17 @@ function App() {
         {gridButtons.map((btn, idx) => (
           <div
             className={`grid-item grid-blue`}
-            key={idx}
-            onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
+            key={btn.key}
+            onClick={() => {
+              if (btn.key === "paris-en-ligne") setShowLive(true);
+              // يمكن إضافة onClick خاصة لكل زر لاحقاً
+            }}
           >
             <div className="icon-holder">
               {btn.icon}
+              {/* النقطة الحمراء في زاوية مربع Paris En Ligne */}
               {btn.live && (
-                <span className="live-dot" />
+                <span className="live-dot-corner" />
               )}
             </div>
             <div className="title">{btn.title}</div>
@@ -190,13 +261,15 @@ function App() {
         {gridButtons.map((btn, idx) => (
           <div
             className={`grid-item grid-blue`}
-            key={idx}
-            onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
+            key={btn.key}
+            onClick={() => {
+              if (btn.key === "paris-en-ligne") setShowLive(true);
+            }}
           >
             <div className="icon-holder">
               {btn.icon}
               {btn.live && (
-                <span className="live-dot" />
+                <span className="live-dot-corner" />
               )}
             </div>
             <div className="title">{btn.title}</div>
