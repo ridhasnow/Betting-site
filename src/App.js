@@ -10,9 +10,9 @@ import {
 
 // صور السلايدر
 const sliderImages = [
-  "/bet-affiche.jpg",
-  "/bet-affiche2.jpg",
-  "/bet-affiche3.jpg"
+  "/bet-affiche.png",
+  "/bet-affiche2.png",
+  "/bet-affiche3.png"
 ];
 
 // بيانات المربعات
