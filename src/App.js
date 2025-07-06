@@ -199,4 +199,160 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* نافذة تعليق الحسابات
+      {/* نافذة تعليق الحسابات */}
+      {showSuspend && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:410}}>
+            <h4>قائمة المزودين (تعليق الحسابات)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em"}}>
+                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
+                      <td>
+                        <button
+                          style={{
+                            background: p.suspended ? "#ffcc00" : "#09c178",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "4px 10px",
+                            cursor:"pointer"
+                          }}
+                          onClick={()=>handleSuspend(p.id, !p.suspended)}
+                        >
+                          {p.suspended ? "إلغاء التعليق" : "تعليق"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// الحساب الإداري الثابت
+const ADMIN_ACCOUNT = {
+  username: "ridhasnow",
+  password: "azerty12345",
+  role: "admin",
+  balance: 999999999,
+};
+
+// واجهة تسجيل الدخول
+function AuthSystem({ onLogin }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    // تحقق هل الأدمن
+    if (
+      username.trim() === ADMIN_ACCOUNT.username &&
+      password === ADMIN_ACCOUNT.password
+    ) {
+      setLoading(false);
+      onLogin({ ...ADMIN_ACCOUNT });
+      return;
+    }
+
+    // تحقق من المزودين في Firestore
+    try {
+      const provider = await getProviderByCredentials(username.trim(), password);
+      if (!provider) {
+        setError("اسم المستخدم أو كلمة المرور غير صحيحة");
+      } else if (provider.suspended) {
+        setError("حسابك معلق حاليا. يرجى التواصل مع الإدارة.");
+      } else {
+        onLogin({ ...provider, role: "provider" });
+      }
+    } catch (e) {
+      setError("حدث خطأ تقني، حاول لاحقاً");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="modal-bg">
+      <div className="modal-login">
+        <h3>تسجيل الدخول</h3>
+        <form onSubmit={handleLogin}>
+          <input
+            type="text"
+            placeholder="اسم المستخدم"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+            autoComplete="username"
+          />
+          <div className="input-pass-wrap" style={{display: "flex", alignItems: "center"}}>
+            <input
+              type={showPass ? "text" : "password"}
+              placeholder="كلمة المرور"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              style={{flex: 1}}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPass(!showPass)}
+              className="showpass-btn"
+              tabIndex={-1}
+              aria-label={showPass ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                marginLeft: 6,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center"
+              }}
+            >
+              {showPass
+                ? <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M12 6.5c-4.45 0-8.21 2.92-9.5 7.5 1.29 4.58 5.05 7.5 9.5 7.5s8.21-2.92 9.5-7.5c-1.29-4.58-5.05-7.5-9.5-7.5zm0 13c-3.86 0-7.19-2.47-8.31-6 .85-2.74 3.41-5 8.31-5 4.9 0 7.46 2.26 8.31 5-.85 2.74-3.41 5-8.31 5zm0-9a4 4 0 100 8 4 4 0 000-8zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
+                : <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4.5c-5.05 0-9.27 3.28-10.5 8.5 1.23 5.22 5.45 8.5 10.5 8.5s9.27-3.28 10.5-8.5c-1.23-5.22-5.45-8.5-10.5-8.5zm0 15c-4.62 0-8.16-2.98-9.31-7 .89-3.02 4.12-7 9.31-7 5.19 0 8.42 3.98 9.31 7-.89 3.02-4.12 7-9.31 7zm0-11a4 4 0 100 8 4 4 0 000-8zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
+              }
+            </button>
+          </div>
+          {error && <div className="login-error">{error}</div>}
+          <button className="login-btn" type="submit" disabled={loading}>
+            {loading ? "جاري التحقق..." : "دخول"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// الكومبوننت الرئيسي
+function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const handleLogout = () => setCurrentUser(null);
+
+  if (!currentUser) return <AuthSystem onLogin={setCurrentUser} />;
+  if (currentUser.role === "admin") return <AdminDashboard user={currentUser} onLogout={handleLogout} />;
+  if (currentUser.role === "provider") return <ProviderDashboard user={currentUser} onLogout={handleLogout} />;
+
+  return <div>غير مصرح بالدخول</div>;
+}
+
+export default App;
