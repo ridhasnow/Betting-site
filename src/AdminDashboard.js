@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getAllProviders, updateProviderBalance, suspendProvider, getProviderByCredentials } from "./providersService";
+import { getAllProviders, addProvider, updateProviderBalance, suspendProvider, getProviderByCredentials } from "./providersService";
 import { addTransaction, getTransactionsBetween } from "./transactionsService";
 
 function AdminDashboard({ user, onLogout }) {
@@ -11,6 +11,13 @@ function AdminDashboard({ user, onLogout }) {
   const [txList, setTxList] = useState([]);
   const [txTargetProvider, setTxTargetProvider] = useState(null);
   const [showSuspend, setShowSuspend] = useState(false);
+
+  // --- إضافة مزود جديد (Add Shop) ---
+  const [showAddShop, setShowAddShop] = useState(false);
+  const [shopUsername, setShopUsername] = useState("");
+  const [shopPassword, setShopPassword] = useState("");
+  const [addShopError, setAddShopError] = useState("");
+  const [addShopSuccess, setAddShopSuccess] = useState("");
 
   const fetchProviders = async () => {
     setLoadingProviders(true);
@@ -67,6 +74,29 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  // إضافة مزود (متجر)
+  const handleAddShop = async () => {
+    setAddShopError("");
+    setAddShopSuccess("");
+    if (!shopUsername || !shopPassword) {
+      setAddShopError("يرجى تعبئة جميع الحقول");
+      return;
+    }
+    if (shopUsername.length < 3 || shopPassword.length < 6) {
+      setAddShopError("اسم المستخدم 3 أحرف على الأقل وكلمة المرور 6 أحرف على الأقل");
+      return;
+    }
+    try {
+      await addProvider(shopUsername.trim(), shopPassword);
+      setAddShopSuccess("تم إنشاء المتجر بنجاح!");
+      setShopUsername("");
+      setShopPassword("");
+      fetchProviders();
+    } catch (e) {
+      setAddShopError(e.message || "خطأ أثناء إنشاء المتجر");
+    }
+  };
+
   return (
     <div>
       <header className="header header-black">
@@ -77,10 +107,38 @@ function AdminDashboard({ user, onLogout }) {
         <button onClick={onLogout} style={{ color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:2}}>⏻</button>
       </header>
       <div style={{padding: '22px 6px 0 6px'}}>
+        <button className="provider-btn" onClick={()=>setShowAddShop(true)}>Add Shop</button>
         <button className="provider-btn" onClick={()=>setShowBalance(true)}>Add/Withdraw Balance</button>
         <button className="provider-btn" onClick={()=>setShowSuspend(true)}>Delete Shop</button>
         <button className="provider-btn" onClick={()=>fetchProviders()}>Transaction History</button>
       </div>
+
+      {/* نافذة إضافة متجر (مزود) جديد */}
+      {showAddShop && (
+        <div className="modal-bg" onClick={()=>setShowAddShop(false)}>
+          <div className="modal-login" style={{maxWidth:340}} onClick={e=>e.stopPropagation()}>
+            <button className="close-btn" onClick={()=>setShowAddShop(false)} style={{position:"absolute",top:8,right:12}}>×</button>
+            <h4>إنشاء حساب مزود جديد</h4>
+            <input
+              type="text"
+              placeholder="اسم المستخدم (حروف أو أرقام)"
+              value={shopUsername}
+              onChange={e => setShopUsername(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="password"
+              placeholder="كلمة المرور (6 أحرف أو أكثر)"
+              value={shopPassword}
+              onChange={e => setShopPassword(e.target.value)}
+            />
+            {addShopError && <div className="login-error">{addShopError}</div>}
+            {addShopSuccess && <div style={{color:'#080',fontWeight:'bold',margin:'6px 0'}}>{addShopSuccess}</div>}
+            <button className="login-btn" onClick={handleAddShop}>إنشاء</button>
+            <button className="login-btn" style={{background:'#ccc',color:'#222'}} onClick={()=>setShowAddShop(false)}>إلغاء</button>
+          </div>
+        </div>
+      )}
 
       {/* نافذة التحكم بالرصيد */}
       {showBalance && (
