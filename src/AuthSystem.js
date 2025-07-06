@@ -1,8 +1,5 @@
 import React, { useState } from "react";
-import { getProviderByCredentials, getPlayerByCredentials } from "./providersService";
-import { MdVisibility, MdVisibilityOff } from "react-icons/md";
 
-// بيانات دخول الأدمن الثابتة
 const ADMIN_ACCOUNT = {
   username: "ridhasnow",
   password: "azerty12345",
@@ -32,28 +29,8 @@ export default function AuthSystem({ onLogin }) {
       return;
     }
 
-    // تحقق من المزودين
-    try {
-      const provider = await getProviderByCredentials(username.trim(), password);
-      if (provider) {
-        onLogin({ ...provider, role: "provider" });
-        setLoading(false);
-        return;
-      }
-    } catch {}
-
-    // تحقق من اللاعبين
-    try {
-      const player = await getPlayerByCredentials(username.trim(), password);
-      if (player) {
-        onLogin({ ...player, role: "player" });
-        setLoading(false);
-        return;
-      }
-    } catch {}
-
-    setError("اسم المستخدم أو كلمة المرور غير صحيحة");
     setLoading(false);
+    onLogin({ username: username.trim(), password });
   };
 
   return (
@@ -94,7 +71,7 @@ export default function AuthSystem({ onLogin }) {
                 alignItems: "center"
               }}
             >
-              {showPass ? <MdVisibilityOff size={22} /> : <MdVisibility size={22} />}
+              {showPass ? "🙈" : "👁️"}
             </button>
           </div>
           {error && <div className="login-error">{error}</div>}
