@@ -7,6 +7,37 @@ import {
   getProviderByCredentials
 } from "./providersService";
 
+// واجهة الهوم (المربعات الزرقاء)
+function Home({ onLoginClick }) {
+  return (
+    <div className="main-wrapper">
+      <header className="header">
+        <span className="header-title">CAZABET</span>
+      </header>
+      <div className="grid-container grid-3">
+        <div className="grid-item">
+          <div className="icon-holder">
+            <span role="img" aria-label="مباريات">⚽️</span>
+          </div>
+          <div className="title">المباريات</div>
+        </div>
+        <div className="grid-item">
+          <div className="icon-holder">
+            <span role="img" aria-label="أخبار">📰</span>
+          </div>
+          <div className="title">الأخبار</div>
+        </div>
+        <div className="grid-item" onClick={onLoginClick} style={{ background: "#155081", cursor: "pointer" }}>
+          <div className="icon-holder">
+            <span role="img" aria-label="دخول">🔑</span>
+          </div>
+          <div className="title">تسجيل الدخول</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // واجهة مزود مع رسالة "حسابك معلق"
 function ProviderDashboard({ user, onLogout }) {
   if (user.suspended) {
@@ -345,12 +376,31 @@ function AuthSystem({ onLogin }) {
 // الكومبوننت الرئيسي
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
 
   const handleLogout = () => setCurrentUser(null);
 
-  if (!currentUser) return <AuthSystem onLogin={setCurrentUser} />;
-  if (currentUser.role === "admin") return <AdminDashboard user={currentUser} onLogout={handleLogout} />;
-  if (currentUser.role === "provider") return <ProviderDashboard user={currentUser} onLogout={handleLogout} />;
+  // اول ما تدخل: الهوم + زر تسجيل الدخول
+  if (!currentUser) {
+    return (
+      <>
+        <Home onLoginClick={() => setShowLogin(true)} />
+        {showLogin && (
+          <AuthSystem
+            onLogin={(user) => {
+              setCurrentUser(user);
+              setShowLogin(false);
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  if (currentUser.role === "admin")
+    return <AdminDashboard user={currentUser} onLogout={handleLogout} />;
+  if (currentUser.role === "provider")
+    return <ProviderDashboard user={currentUser} onLogout={handleLogout} />;
 
   return <div>غير مصرح بالدخول</div>;
 }
