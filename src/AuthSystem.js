@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { getProviderByCredentials } from "./providersService";
+import { MdVisibility, MdVisibilityOff } from "react-icons/md"; // أيقونات احترافية
 
-// بيانات الدخول التجريبية (بدون backend)، يمكنك إضافة لاعبين أو مزودين آخرين هنا
+// بيانات دخول الأدمن الثابتة
 const ADMIN_ACCOUNT = {
   username: "ridhasnow",
   password: "azerty12345",
@@ -8,49 +10,42 @@ const ADMIN_ACCOUNT = {
   balance: 999999999,
 };
 
-const PROVIDERS = [
-  // مثال: يمكنك إضافة مزودين هنا
-  // { username: "provider1", password: "providerpass", role: "provider", balance: 5000 }
-];
-
-const PLAYERS = [
-  // مثال: يمكنك إضافة لاعبين هنا
-  // { username: "player1", password: "playerpass", role: "player", balance: 200 }
-];
-
-// helper للبحث عن الحساب المناسب
-function findAccount(username, password) {
-  if (
-    username === ADMIN_ACCOUNT.username &&
-    password === ADMIN_ACCOUNT.password
-  )
-    return { ...ADMIN_ACCOUNT };
-  const provider = PROVIDERS.find(
-    (u) => u.username === username && u.password === password
-  );
-  if (provider) return { ...provider };
-  const player = PLAYERS.find(
-    (u) => u.username === username && u.password === password
-  );
-  if (player) return { ...player };
-  return null;
-}
-
 export default function AuthSystem({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const account = findAccount(username.trim(), password);
-    if (account) {
-      setError("");
-      onLogin(account);
-    } else {
-      setError("اسم المستخدم أو كلمة المرور غير صحيحة");
+    setError("");
+    setLoading(true);
+
+    // تحقق هل الأدمن
+    if (
+      username.trim() === ADMIN_ACCOUNT.username &&
+      password === ADMIN_ACCOUNT.password
+    ) {
+      setLoading(false);
+      onLogin({ ...ADMIN_ACCOUNT });
+      return;
     }
+
+    // تحقق من المزودين في Firestore
+    try {
+      const provider = await getProviderByCredentials(username.trim(), password);
+      if (!provider) {
+        setError("اسم المستخدم أو كلمة المرور غير صحيحة");
+      } else if (provider.suspended) {
+        setError("حسابك معلق حاليا. يرجى التواصل مع الإدارة.");
+      } else {
+        onLogin({ ...provider, role: "provider" });
+      }
+    } catch (e) {
+      setError("حدث خطأ تقني، حاول لاحقاً");
+    }
+    setLoading(false);
   };
 
   return (
@@ -66,27 +61,37 @@ export default function AuthSystem({ onLogin }) {
             autoFocus
             autoComplete="username"
           />
-          <div className="input-pass-wrap">
+          <div className="input-pass-wrap" style={{display: "flex", alignItems: "center"}}>
             <input
               type={showPass ? "text" : "password"}
               placeholder="كلمة المرور"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              style={{flex: 1}}
             />
             <button
               type="button"
               onClick={() => setShowPass(!showPass)}
               className="showpass-btn"
               tabIndex={-1}
-              aria-label="إظهار كلمة المرور"
+              aria-label={showPass ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                marginLeft: 6,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center"
+              }}
             >
-              {showPass ? "🙈" : "👁️"}
+              {showPass ? <MdVisibilityOff size={22} /> : <MdVisibility size={22} />}
             </button>
           </div>
           {error && <div className="login-error">{error}</div>}
-          <button className="login-btn" type="submit">
-            دخول
+          <button className="login-btn" type="submit" disabled={loading}>
+            {loading ? "جاري التحقق..." : "دخول"}
           </button>
         </form>
       </div>
