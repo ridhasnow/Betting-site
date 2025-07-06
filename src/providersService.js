@@ -1,9 +1,8 @@
-import { collection, addDoc, getDocs, query, where, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, updateDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 // إضافة مزود جديد
 export async function addProvider(username, password) {
-  // يمكنك هنا إضافة منطق منع التكرار إذا أردت
   await addDoc(collection(db, "providers"), {
     username,
     password,
@@ -19,9 +18,20 @@ export async function getAllProviders() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-// تحديث رصيد مزود
-export async function updateProviderBalance(id, newBalance) {
+// تحديث رصيد مزود (يقبل العملية: إضافة أو سحب)
+export async function updateProviderBalance(id, amount, type = "add") {
+  // type: "add" أو "sub"
   const ref = doc(db, "providers", id);
+  const providerSnap = await getDoc(ref);
+  if (!providerSnap.exists()) throw new Error("Provider not found");
+  const currentBalance = providerSnap.data().balance || 0;
+  let newBalance = currentBalance;
+  if (type === "add") {
+    newBalance = currentBalance + Number(amount);
+  } else if (type === "sub") {
+    if (currentBalance < Number(amount)) throw new Error("لا يوجد رصيد كافٍ للسحب");
+    newBalance = currentBalance - Number(amount);
+  }
   await updateDoc(ref, { balance: newBalance });
 }
 
