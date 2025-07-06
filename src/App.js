@@ -1,58 +1,51 @@
 import React, { useState, useEffect } from "react";
-import {
-  addProvider,
-  getAllProviders,
-  updateProviderBalance,
-  suspendProvider,
-  getProviderByCredentials
-} from "./providersService";
+import "./App.css";
+import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-icons/fa";
+import { GiSpinningWheel } from "react-icons/gi";
+import { MdOutlineSportsSoccer } from "react-icons/md";
+import AuthSystem from "./AuthSystem";
+import { addProvider } from "./providersService"; // أضف هذا السطر لاستيراد خدمة إضافة المزودين
 
-// واجهة الهوم (المربعات الزرقاء)
-function Home({ onLoginClick }) {
-  return (
-    <div className="main-wrapper">
-      <header className="header">
-        <span className="header-title">CAZABET</span>
-      </header>
-      <div className="grid-container grid-3">
-        <div className="grid-item">
-          <div className="icon-holder">
-            <span role="img" aria-label="مباريات">⚽️</span>
-          </div>
-          <div className="title">المباريات</div>
-        </div>
-        <div className="grid-item">
-          <div className="icon-holder">
-            <span role="img" aria-label="أخبار">📰</span>
-          </div>
-          <div className="title">الأخبار</div>
-        </div>
-        <div className="grid-item" onClick={onLoginClick} style={{ background: "#155081", cursor: "pointer" }}>
-          <div className="icon-holder">
-            <span role="img" aria-label="دخول">🔑</span>
-          </div>
-          <div className="title">تسجيل الدخول</div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// صور السلايدر
+const sliderImages = [
+  "/bet-affiche.jpg",
+  "/bet-affiche2.jpg",
+  "/bet-affiche3.jpg"
+];
 
-// واجهة مزود مع رسالة "حسابك معلق"
+// بيانات المربعات
+const gridButtons = [
+  {
+    title: "Paris En Ligne",
+    icon: <MdOutlineSportsSoccer size={40} color="#FFF" />,
+    live: true, // لإظهار النقطة الحمراء
+  },
+  {
+    title: "Jeux De Casino",
+    icon: <FaDice size={40} color="#FFF" />,
+  },
+  {
+    title: "Paris Sportif",
+    icon: <FaFutbol size={40} color="#FFF" />,
+  },
+  {
+    title: "Jeux Virtuels",
+    icon: <FaGamepad size={40} color="#FFF" />,
+  },
+  {
+    title: "Roue de la Fortune",
+    icon: <GiSpinningWheel size={40} color="#FFF" />,
+  },
+  {
+    title: "Casino En Direct",
+    icon: <FaGem size={40} color="#FFF" />,
+  },
+];
+
+const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
+
+// واجهة مزود بسيطة مؤقتًا
 function ProviderDashboard({ user, onLogout }) {
-  if (user.suspended) {
-    return (
-      <div>
-        <header className="header header-black">
-          <span className="header-title">{user.username}</span>
-          <button onClick={onLogout} style={{marginLeft:"auto", color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer"}}>⏻</button>
-        </header>
-        <div style={{padding:40, textAlign:'center', color:'red', fontWeight:'bold', fontSize:'1.2em'}}>
-          حسابك معلق حاليا. يرجى التواصل مع الإدارة.
-        </div>
-      </div>
-    );
-  }
   return (
     <div>
       <header className="header header-black">
@@ -73,7 +66,7 @@ function ProviderDashboard({ user, onLogout }) {
   );
 }
 
-// AdminDashboard مع التحكم بالرصد و التعليق
+// واجهة الأدمن مع نافذة إضافة مزود جديدة
 function AdminDashboard({ user, onLogout }) {
   const [showPassEdit, setShowPassEdit] = useState(false);
   const [newPass, setNewPass] = useState("");
@@ -83,35 +76,15 @@ function AdminDashboard({ user, onLogout }) {
   const [shopPassword, setShopPassword] = useState("");
   const [addShopError, setAddShopError] = useState("");
   const [addShopSuccess, setAddShopSuccess] = useState("");
-  const [showBalance, setShowBalance] = useState(false);
-  const [showSuspend, setShowSuspend] = useState(false);
 
-  const [providers, setProviders] = useState([]);
-  const [loadingProviders, setLoadingProviders] = useState(false);
-  const [errProviders, setErrProviders] = useState("");
-
-  // جلب قائمة المزودين
-  const fetchProviders = async () => {
-    setLoadingProviders(true); setErrProviders("");
-    try {
-      const data = await getAllProviders();
-      setProviders(data);
-    } catch(e) {
-      setErrProviders("خطأ في جلب المزودين!");
-    }
-    setLoadingProviders(false);
-  };
-
-  useEffect(() => {
-    if (showBalance || showSuspend) fetchProviders();
-  }, [showBalance, showSuspend]);
-
+  // كلمة السر ثابتة في هذا النموذج (التعديل غير حقيقي لأنه Mock)
   const handlePassChange = () => {
     setMsg("تم تغيير كلمة السر (وهميًا)");
     setTimeout(()=>setMsg(""), 2000);
     setShowPassEdit(false);
   };
 
+  // إضافة مزود جديد عبر Firestore
   const handleAddShop = async () => {
     setAddShopError(""); setAddShopSuccess("");
     try {
@@ -121,20 +94,6 @@ function AdminDashboard({ user, onLogout }) {
     } catch (e) {
       setAddShopError(e.message);
     }
-  };
-
-  const handleBalanceChange = async (id, currentBalance) => {
-    const amount = prompt("أدخل الرصيد الجديد:", currentBalance);
-    if (amount === null) return;
-    const value = Number(amount);
-    if (isNaN(value)) return alert("أدخل رقم صحيح!");
-    await updateProviderBalance(id, value);
-    fetchProviders();
-  };
-
-  const handleSuspend = async (id, isSuspended) => {
-    await suspendProvider(id, isSuspended);
-    fetchProviders();
   };
 
   return (
@@ -149,9 +108,9 @@ function AdminDashboard({ user, onLogout }) {
       </header>
       <div style={{padding: '22px 6px 0 6px'}}>
         <button className="provider-btn" onClick={() => setShowAddShop(true)}>Add Shop</button>
-        <button className="provider-btn" onClick={() => setShowBalance(true)}>Add/Withdraw Balance</button>
+        <button className="provider-btn">Add/Withdraw Balance</button>
         <button className="provider-btn">Transaction History</button>
-        <button className="provider-btn" onClick={() => setShowSuspend(true)}>Delete Shop</button>
+        <button className="provider-btn">Delete Shop</button>
       </div>
       {showPassEdit && (
         <div className="modal-bg">
@@ -195,214 +154,170 @@ function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
       )}
-
-      {/* نافذة التحكم في الأرصدة */}
-      {showBalance && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:410}}>
-            <h4>قائمة المزودين (تحكم في الرصيد)</h4>
-            {loadingProviders ? <div>جاري التحميل...</div> :
-              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
-              <table style={{width:"100%", fontSize:"1em"}}>
-                <thead><tr><th>الاسم</th><th>الرصيد</th><th>تحكم</th></tr></thead>
-                <tbody>
-                  {providers.map(p=>(
-                    <tr key={p.id} style={{opacity: p.suspended ? 0.5 : 1}}>
-                      <td>{p.username}</td>
-                      <td>{p.balance}</td>
-                      <td>
-                        <button
-                          style={{background:"#2176c1", color:"#fff", border:"none", borderRadius:6, padding:"4px 10px", cursor:"pointer"}}
-                          onClick={()=>handleBalanceChange(p.id, p.balance)}
-                          disabled={p.suspended}
-                        >
-                          تعديل الرصيد
-                        </button>
-                        {p.suspended && <span style={{color:"red",marginRight:8}}>معلق</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            }
-            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowBalance(false)}>إغلاق</button>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة تعليق الحسابات */}
-      {showSuspend && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:410}}>
-            <h4>قائمة المزودين (تعليق الحسابات)</h4>
-            {loadingProviders ? <div>جاري التحميل...</div> :
-              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
-              <table style={{width:"100%", fontSize:"1em"}}>
-                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
-                <tbody>
-                  {providers.map(p=>(
-                    <tr key={p.id}>
-                      <td>{p.username}</td>
-                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
-                      <td>
-                        <button
-                          style={{
-                            background: p.suspended ? "#ffcc00" : "#09c178",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 6,
-                            padding: "4px 10px",
-                            cursor:"pointer"
-                          }}
-                          onClick={()=>handleSuspend(p.id, !p.suspended)}
-                        >
-                          {p.suspended ? "إلغاء التعليق" : "تعليق"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            }
-            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-// الحساب الإداري الثابت
-const ADMIN_ACCOUNT = {
-  username: "ridhasnow",
-  password: "azerty12345",
-  role: "admin",
-  balance: 999999999,
-};
+function App() {
+  // سلايدر الصور
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % sliderImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
-// واجهة تسجيل الدخول
-function AuthSystem({ onLogin }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState("");
+  // فتح قائمة مباريات لايف
+  const [showLive, setShowLive] = useState(false);
+
+  // جلب مباريات اليوم من football-data.org
+  const [liveMatches, setLiveMatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    // تحقق هل الأدمن
-    if (
-      username.trim() === ADMIN_ACCOUNT.username &&
-      password === ADMIN_ACCOUNT.password
-    ) {
-      setLoading(false);
-      onLogin({ ...ADMIN_ACCOUNT });
-      return;
+  useEffect(() => {
+    if (showLive) {
+      setLoading(true);
+      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
+        headers: {
+          "X-Auth-Token": FOOTBALL_API_KEY,
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          const matches = (data.matches || []).slice(0, 10).map(ev => ({
+            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
+            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
+            odds: [
+              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
+              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+            ],
+          }));
+          setLiveMatches(matches);
+          setLoading(false);
+        });
     }
+  }, [showLive]);
 
-    // تحقق من المزودين في Firestore
-    try {
-      const provider = await getProviderByCredentials(username.trim(), password);
-      if (!provider) {
-        setError("اسم المستخدم أو كلمة المرور غير صحيحة");
-      } else if (provider.suspended) {
-        setError("حسابك معلق حاليا. يرجى التواصل مع الإدارة.");
-      } else {
-        onLogin({ ...provider, role: "provider" });
-      }
-    } catch (e) {
-      setError("حدث خطأ تقني، حاول لاحقاً");
-    }
-    setLoading(false);
-  };
+  // اختيار رهان (للتوضيح فقط)
+  const [selectedBet, setSelectedBet] = useState(null);
 
-  return (
-    <div className="modal-bg">
-      <div className="modal-login">
-        <h3>تسجيل الدخول</h3>
-        <form onSubmit={handleLogin}>
-          <input
-            type="text"
-            placeholder="اسم المستخدم"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoFocus
-            autoComplete="username"
-          />
-          <div className="input-pass-wrap" style={{display: "flex", alignItems: "center"}}>
-            <input
-              type={showPass ? "text" : "password"}
-              placeholder="كلمة المرور"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              style={{flex: 1}}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPass(!showPass)}
-              className="showpass-btn"
-              tabIndex={-1}
-              aria-label={showPass ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                marginLeft: 6,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center"
-              }}
-            >
-              {showPass
-                ? <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M12 6.5c-4.45 0-8.21 2.92-9.5 7.5 1.29 4.58 5.05 7.5 9.5 7.5s8.21-2.92 9.5-7.5c-1.29-4.58-5.05-7.5-9.5-7.5zm0 13c-3.86 0-7.19-2.47-8.31-6 .85-2.74 3.41-5 8.31-5 4.9 0 7.46 2.26 8.31 5-.85 2.74-3.41 5-8.31 5zm0-9a4 4 0 100 8 4 4 0 000-8zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
-                : <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4.5c-5.05 0-9.27 3.28-10.5 8.5 1.23 5.22 5.45 8.5 10.5 8.5s9.27-3.28 10.5-8.5c-1.23-5.22-5.45-8.5-10.5-8.5zm0 15c-4.62 0-8.16-2.98-9.31-7 .89-3.02 4.12-7 9.31-7 5.19 0 8.42 3.98 9.31 7-.89 3.02-4.12 7-9.31 7zm0-11a4 4 0 100 8 4 4 0 000-8zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
-              }
-            </button>
-          </div>
-          {error && <div className="login-error">{error}</div>}
-          <button className="login-btn" type="submit" disabled={loading}>
-            {loading ? "جاري التحقق..." : "دخول"}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// الكومبوننت الرئيسي
-function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+  // نظام الدخول
+  const [auth, setAuth] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
 
-  const handleLogout = () => setCurrentUser(null);
+  // زر تسجيل الخروج
+  const handleLogout = () => {
+    setAuth(null);
+    setShowLogin(false);
+  };
 
-  // اول ما تدخل: الهوم + زر تسجيل الدخول
-  if (!currentUser) {
-    return (
-      <>
-        <Home onLoginClick={() => setShowLogin(true)} />
-        {showLogin && (
-          <AuthSystem
-            onLogin={(user) => {
-              setCurrentUser(user);
-              setShowLogin(false);
-            }}
-          />
-        )}
-      </>
-    );
+  // في حال مزود
+  if (auth?.role === "provider") {
+    return <ProviderDashboard user={auth} onLogout={handleLogout} />;
   }
+  // في حال الأدمن
+  if (auth?.role === "admin") {
+    return <AdminDashboard user={auth} onLogout={handleLogout} />;
+  }
+  // في حال لاعب أو زائر عادي
+  return (
+    <div className="main-wrapper" style={{background:"#fff"}}>
+      {/* Header */}
+      <header className="header header-black">
+        <span className="header-title">Accueil</span>
+        <img src="/cazabet.png" alt="Cazabet Logo" className="header-logo" />
+      </header>
 
-  if (currentUser.role === "admin")
-    return <AdminDashboard user={currentUser} onLogout={handleLogout} />;
-  if (currentUser.role === "provider")
-    return <ProviderDashboard user={currentUser} onLogout={handleLogout} />;
+      {/* Slider */}
+      <div className="slider-holder">
+        <img
+          src={sliderImages[current]}
+          alt="affiche"
+          className="slider-img"
+        />
+      </div>
 
-  return <div>غير مصرح بالدخول</div>;
+      {/* Grid */}
+      <main className="grid-container grid-3">
+        {gridButtons.map((btn, idx) => (
+          <div
+            className={`grid-item grid-blue`}
+            key={idx}
+            onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
+          >
+            <div className="icon-holder">
+              {btn.icon}
+              {btn.live && (
+                <span className="live-dot" />
+              )}
+            </div>
+            <div className="title">{btn.title}</div>
+          </div>
+        ))}
+      </main>
+
+      {/* Pop-up Live Matches */}
+      {showLive && (
+        <div className="live-popup">
+          <div className="live-popup-content">
+            <h3>Live Matches</h3>
+            <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
+            {loading ? (
+              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+            ) : (
+              <div className="live-matches-list">
+                {liveMatches.map((match, i) => (
+                  <div className="live-match-row" key={i}>
+                    <div className="teams">{match.teams}</div>
+                    <div className="time">{match.time}</div>
+                    <div className="odds">
+                      {match.odds.map((odd, j) => (
+                        <button
+                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          key={j}
+                          onClick={() => setSelectedBet(`${i}-${j}`)}
+                        >
+                          {odd.label}
+                          <span>{odd.value}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {liveMatches.length === 0 && (
+                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom navigation */}
+      <nav className="bottom-nav">
+        <div className="nav-btn">
+          <FaHome size={28} />
+          <span>Home</span>
+        </div>
+        <div className="nav-btn" onClick={() => setShowLogin(true)}>
+          <FaSignInAlt size={28} />
+          <span>Login</span>
+        </div>
+        <div className="nav-btn">
+          <FaFutbol size={28} />
+          <span>Paris Sportif</span>
+        </div>
+      </nav>
+      {/* نافذة الدخول */}
+      {showLogin && !auth && (
+        <AuthSystem onLogin={(acc) => { setAuth(acc); setShowLogin(false); }} />
+      )}
+    </div>
+  );
 }
 
 export default App;
