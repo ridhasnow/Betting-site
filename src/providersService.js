@@ -1,20 +1,40 @@
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, updateDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
 
-// إضافة مزود جديد (username, password)
+// إضافة مزود جديد
 export async function addProvider(username, password) {
-  // تحقق عدم التكرار
-  const q = query(collection(db, "providers"), where("username", "==", username));
-  const snapshot = await getDocs(q);
-  if (!username || !password) throw new Error("يجب إدخال اسم وكلمة مرور");
-  if (password.length < 6) throw new Error("كلمة المرور يجب أن تكون 6 أحرف أو أكثر");
-  if (!/^[a-zA-Z0-9]+$/.test(username)) throw new Error("اسم المستخدم يجب أن يكون أرقام أو حروف فقط");
-  if (!snapshot.empty) throw new Error("اسم المستخدم مستعمل بالفعل!");
-  // إذا كل شيء صحيح، أضف المزود وجعل رصيده 0
+  // يمكنك هنا إضافة منطق منع التكرار إذا أردت
   await addDoc(collection(db, "providers"), {
     username,
     password,
     balance: 0,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    suspended: false
   });
+}
+
+// جلب كل المزودين
+export async function getAllProviders() {
+  const snapshot = await getDocs(collection(db, "providers"));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+// تحديث رصيد مزود
+export async function updateProviderBalance(id, newBalance) {
+  const ref = doc(db, "providers", id);
+  await updateDoc(ref, { balance: newBalance });
+}
+
+// تعليق/إلغاء تعليق مزود
+export async function suspendProvider(id, isSuspended) {
+  const ref = doc(db, "providers", id);
+  await updateDoc(ref, { suspended: isSuspended });
+}
+
+// جلب مزود حسب الاسم وكلمة السر (للدخول)
+export async function getProviderByCredentials(username, password) {
+  const q = query(collection(db, "providers"), where("username", "==", username), where("password", "==", password));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
 }
