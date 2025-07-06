@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
 
 // إضافة معاملة جديدة
@@ -12,26 +12,14 @@ export async function addTransaction({ fromId, fromType, toId, toType, amount, a
 
 // جلب كل معاملات بين طرفين (أدمن/مزود أو مزود/لاعب)
 export async function getTransactionsBetween(id1, id2) {
-  // معاملات حيث id1 هو from أو to
-  const q1 = query(
-    collection(db, "transactions"),
-    where("fromId", "==", id1),
-    where("toId", "==", id2),
-    orderBy("date", "desc")
-  );
-  const q2 = query(
-    collection(db, "transactions"),
-    where("fromId", "==", id2),
-    where("toId", "==", id1),
-    orderBy("date", "desc")
-  );
-  const s1 = await getDocs(q1);
-  const s2 = await getDocs(q2);
-
-  // دمج النتائج
-  const all = [
-    ...s1.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-    ...s2.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  ];
-  return all.sort((a, b) => b.date - a.date);
+  // جلب كل العمليات ثم الفلترة يدويا لضمان ظهور كل العمليات في الاتجاهين
+  const q = query(collection(db, "transactions"), orderBy("date", "desc"));
+  const snap = await getDocs(q);
+  const all = snap.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(tx =>
+      (tx.fromId === id1 && tx.toId === id2) ||
+      (tx.fromId === id2 && tx.toId === id1)
+    );
+  return all;
 }
