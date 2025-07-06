@@ -4,7 +4,9 @@ import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-i
 import { GiSpinningWheel } from "react-icons/gi";
 import { MdOutlineSportsSoccer } from "react-icons/md";
 import AuthSystem from "./AuthSystem";
-import { addProvider } from "./providersService"; // أضف هذا السطر لاستيراد خدمة إضافة المزودين
+import {
+  getAllProviders,
+} from "./providersService";
 
 // صور السلايدر
 const sliderImages = [
@@ -18,7 +20,7 @@ const gridButtons = [
   {
     title: "Paris En Ligne",
     icon: <MdOutlineSportsSoccer size={40} color="#FFF" />,
-    live: true, // لإظهار النقطة الحمراء
+    live: true,
   },
   {
     title: "Jeux De Casino",
@@ -44,7 +46,7 @@ const gridButtons = [
 
 const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
 
-// واجهة مزود بسيطة مؤقتًا
+// واجهة مزود
 function ProviderDashboard({ user, onLogout }) {
   return (
     <div>
@@ -66,28 +68,62 @@ function ProviderDashboard({ user, onLogout }) {
   );
 }
 
-// واجهة الأدمن مع نافذة إضافة مزود جديدة
+// واجهة الأدمن الجديدة
 function AdminDashboard({ user, onLogout }) {
   const [showPassEdit, setShowPassEdit] = useState(false);
   const [newPass, setNewPass] = useState("");
   const [msg, setMsg] = useState("");
+
+  // نافذة إضافة مزود (نفس القديم)
   const [showAddShop, setShowAddShop] = useState(false);
   const [shopUsername, setShopUsername] = useState("");
   const [shopPassword, setShopPassword] = useState("");
   const [addShopError, setAddShopError] = useState("");
   const [addShopSuccess, setAddShopSuccess] = useState("");
 
-  // كلمة السر ثابتة في هذا النموذج (التعديل غير حقيقي لأنه Mock)
+  // قوائم التحكم
+  const [showBalance, setShowBalance] = useState(false);
+  const [showSuspend, setShowSuspend] = useState(false);
+
+  // بيانات المزودين
+  const [providers, setProviders] = useState([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [errProviders, setErrProviders] = useState("");
+
+  // حالة التعديل الفردي
+  const [balanceEdit, setBalanceEdit] = useState({}); // { [providerId]: { type: "add"|"sub", value: "" } }
+
+  // جلب قائمة المزودين
+  const fetchProviders = async () => {
+    setLoadingProviders(true); setErrProviders("");
+    try {
+      const data = await getAllProviders();
+      setProviders(data);
+    } catch(e) {
+      setErrProviders("خطأ في جلب المزودين!");
+    }
+    setLoadingProviders(false);
+  };
+
+  useEffect(() => {
+    if (showBalance || showSuspend) fetchProviders();
+    // Reset edit state
+    setBalanceEdit({});
+  }, [showBalance, showSuspend]);
+
+  // تغيير كلمة السر (وهمي)
   const handlePassChange = () => {
     setMsg("تم تغيير كلمة السر (وهميًا)");
     setTimeout(()=>setMsg(""), 2000);
     setShowPassEdit(false);
   };
 
-  // إضافة مزود جديد عبر Firestore
+  // إضافة مزود (نفس القديم)
   const handleAddShop = async () => {
     setAddShopError(""); setAddShopSuccess("");
     try {
+      // استدعاء دالة addProvider من providersService.js
+      const { addProvider } = await import("./providersService");
       await addProvider(shopUsername.trim(), shopPassword);
       setAddShopSuccess("تم إضافة المزود بنجاح!");
       setShopUsername(""); setShopPassword("");
@@ -96,6 +132,36 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  // تعديل الرصيد (إضافة/سحب)
+  const handleBalanceChange = async (id, type) => {
+    const value = balanceEdit[id]?.value;
+    if (!value || isNaN(Number(value))) {
+      alert("أدخل رقم صحيح!");
+      return;
+    }
+    try {
+      // استدعاء دالة updateProviderBalance من providersService.js
+      const { updateProviderBalance } = await import("./providersService");
+      await updateProviderBalance(id, Number(value), type); // type: "add" or "sub"
+      setBalanceEdit(edit => ({ ...edit, [id]: undefined }));
+      fetchProviders();
+    } catch (e) {
+      alert("حدث خطأ أثناء تعديل الرصيد");
+    }
+  };
+
+  // تعليق/إلغاء تعليق
+  const handleSuspend = async (id, isSuspended) => {
+    try {
+      const { suspendProvider } = await import("./providersService");
+      await suspendProvider(id, isSuspended);
+      fetchProviders();
+    } catch (e) {
+      alert("خطأ في التعليق/التفعيل");
+    }
+  };
+
+  // واجهة الأدمن الكاملة
   return (
     <div>
       <header className="header header-black">
@@ -108,9 +174,9 @@ function AdminDashboard({ user, onLogout }) {
       </header>
       <div style={{padding: '22px 6px 0 6px'}}>
         <button className="provider-btn" onClick={() => setShowAddShop(true)}>Add Shop</button>
-        <button className="provider-btn">Add/Withdraw Balance</button>
+        <button className="provider-btn" onClick={() => setShowBalance(true)}>Add/Withdraw Balance</button>
         <button className="provider-btn">Transaction History</button>
-        <button className="provider-btn">Delete Shop</button>
+        <button className="provider-btn" onClick={() => setShowSuspend(true)}>Delete Shop</button>
       </div>
       {showPassEdit && (
         <div className="modal-bg">
@@ -154,9 +220,181 @@ function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* نافذة تحكم الرصيد */}
+      {showBalance && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:500}}>
+            <h4>قائمة المزودين (تحكم في الرصيد)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em", borderCollapse:"collapse"}}>
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>الرصيد</th>
+                    <th colSpan={2}>تحكم</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id} style={{opacity: p.suspended ? 0.5 : 1}}>
+                      <td>{p.username}</td>
+                      <td>{p.balance}</td>
+                      <td>
+                        {/* زر زائد */}
+                        <button
+                          style={{
+                            background:"#09c178",
+                            color:"#fff",
+                            border:"none",
+                            borderRadius:"50%",
+                            width:32, height:32,
+                            fontSize:22,
+                            marginRight:8,
+                            cursor:"pointer"
+                          }}
+                          title="إضافة رصيد"
+                          onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: { type: "add", value: "" } }))}
+                          disabled={p.suspended}
+                        >+</button>
+                        {/* حقل إدخال للزائد */}
+                        {balanceEdit[p.id]?.type==="add" && (
+                          <span style={{marginRight:6}}>
+                            <input
+                              type="number"
+                              min="1"
+                              style={{width:70, marginRight:4}}
+                              value={balanceEdit[p.id].value}
+                              placeholder="المبلغ"
+                              onChange={e =>
+                                setBalanceEdit(edit=>({
+                                  ...edit,
+                                  [p.id]: { ...edit[p.id], value: e.target.value }
+                                }))
+                              }
+                            />
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14}}
+                              onClick={()=>handleBalanceChange(p.id, "add")}
+                            >تأكيد</button>
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14, background:"#ccc", color:"#222"}}
+                              onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: undefined }))}
+                            >X</button>
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {/* زر ناقص */}
+                        <button
+                          style={{
+                            background:"#e53935",
+                            color:"#fff",
+                            border:"none",
+                            borderRadius:"50%",
+                            width:32, height:32,
+                            fontSize:22,
+                            marginRight:8,
+                            cursor:"pointer"
+                          }}
+                          title="سحب رصيد"
+                          onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: { type: "sub", value: "" } }))}
+                          disabled={p.suspended}
+                        >-</button>
+                        {/* حقل إدخال للناقص */}
+                        {balanceEdit[p.id]?.type==="sub" && (
+                          <span style={{marginRight:6}}>
+                            <input
+                              type="number"
+                              min="1"
+                              style={{width:70, marginRight:4}}
+                              value={balanceEdit[p.id].value}
+                              placeholder="المبلغ"
+                              onChange={e =>
+                                setBalanceEdit(edit=>({
+                                  ...edit,
+                                  [p.id]: { ...edit[p.id], value: e.target.value }
+                                }))
+                              }
+                            />
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14}}
+                              onClick={()=>handleBalanceChange(p.id, "sub")}
+                            >تأكيد</button>
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14, background:"#ccc", color:"#222"}}
+                              onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: undefined }))}
+                            >X</button>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowBalance(false)}>إغلاق</button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة تعليق الحسابات */}
+      {showSuspend && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:410}}>
+            <h4>قائمة المزودين (تعليق/تفعيل الحسابات)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em"}}>
+                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
+                      <td>
+                        <button
+                          style={{
+                            background: p.suspended ? "#09c178" : "#e53935",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "4px 12px",
+                            fontWeight:"bold",
+                            fontSize:15,
+                            cursor:"pointer"
+                          }}
+                          onClick={()=>handleSuspend(p.id, !p.suspended)}
+                        >
+                          {p.suspended ? "تفعيل" : "تعليق"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
+// الحساب الإداري الثابت
+const ADMIN_ACCOUNT = {
+  username: "ridhasnow",
+  password: "azerty12345",
+  role: "admin",
+  balance: 999999999,
+};
 
 function App() {
   // سلايدر الصور
