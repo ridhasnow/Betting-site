@@ -1,4 +1,4 @@
-// ... باقي الاستيرادات
+import React, { useState, useEffect } from "react";
 import {
   addProvider,
   getAllProviders,
@@ -6,8 +6,6 @@ import {
   suspendProvider,
   getProviderByCredentials
 } from "./providersService";
-
-// ... بقية الكود
 
 // واجهة مزود مع رسالة "حسابك معلق"
 function ProviderDashboard({ user, onLogout }) {
@@ -201,44 +199,4 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* نافذة تعليق الحسابات */}
-      {showSuspend && (
-        <div className="modal-bg">
-          <div className="modal-login" style={{maxWidth:410}}>
-            <h4>قائمة المزودين (تعليق الحسابات)</h4>
-            {loadingProviders ? <div>جاري التحميل...</div> :
-              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
-              <table style={{width:"100%", fontSize:"1em"}}>
-                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
-                <tbody>
-                  {providers.map(p=>(
-                    <tr key={p.id}>
-                      <td>{p.username}</td>
-                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
-                      <td>
-                        <button
-                          style={{
-                            background: p.suspended ? "#ffcc00" : "#09c178",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 6,
-                            padding: "4px 10px",
-                            cursor:"pointer"
-                          }}
-                          onClick={()=>handleSuspend(p.id, !p.suspended)}
-                        >
-                          {p.suspended ? "إلغاء التعليق" : "تعليق"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            }
-            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+      {/* نافذة تعليق الحسابات
