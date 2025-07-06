@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { getProviderByCredentials } from "./providersService";
-import { MdVisibility, MdVisibilityOff } from "react-icons/md"; // أيقونات احترافية
+import { getProviderByCredentials, getPlayerByCredentials } from "./providersService";
+import { MdVisibility, MdVisibilityOff } from "react-icons/md";
 
 // بيانات دخول الأدمن الثابتة
 const ADMIN_ACCOUNT = {
@@ -32,19 +32,27 @@ export default function AuthSystem({ onLogin }) {
       return;
     }
 
-    // تحقق من المزودين في Firestore
+    // تحقق من المزودين
     try {
       const provider = await getProviderByCredentials(username.trim(), password);
-      if (!provider) {
-        setError("اسم المستخدم أو كلمة المرور غير صحيحة");
-      } else if (provider.suspended) {
-        setError("حسابك معلق حاليا. يرجى التواصل مع الإدارة.");
-      } else {
+      if (provider) {
         onLogin({ ...provider, role: "provider" });
+        setLoading(false);
+        return;
       }
-    } catch (e) {
-      setError("حدث خطأ تقني، حاول لاحقاً");
-    }
+    } catch {}
+
+    // تحقق من اللاعبين
+    try {
+      const player = await getPlayerByCredentials(username.trim(), password);
+      if (player) {
+        onLogin({ ...player, role: "player" });
+        setLoading(false);
+        return;
+      }
+    } catch {}
+
+    setError("اسم المستخدم أو كلمة المرور غير صحيحة");
     setLoading(false);
   };
 
