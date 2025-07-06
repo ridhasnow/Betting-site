@@ -71,6 +71,11 @@ function ProviderDashboard({ user, onLogout }) {
       alert("أدخل مبلغ صحيح!");
       return;
     }
+    // تحقق رصيد المزود قبل الشحن
+    if (type === "add" && Number(value) > Number(user.balance)) {
+      alert("لا يوجد رصيد كافٍ في حسابك لإرسال هذا المبلغ!");
+      return;
+    }
     try {
       // تحديث رصيد اللاعب
       await updatePlayerBalance(playerId, Number(value), type);
