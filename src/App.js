@@ -1,574 +1,561 @@
 import React, { useState, useEffect } from "react";
+import "./App.css";
+import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-icons/fa";
+import { GiSpinningWheel } from "react-icons/gi";
+import { MdOutlineSportsSoccer } from "react-icons/md";
+import AuthSystem from "./AuthSystem";
 import {
-  addProvider,
   getAllProviders,
-  updateProviderBalance,
-  suspendProvider,
-  getProviderByCredentials,
-  addPlayer,
-  getPlayersByProvider,
-  getPlayerByCredentials,
-  updatePlayerBalance,
-  getProviderAdminTransactions,
-  getProviderPlayerTransactions,
-  getTransactions,
 } from "./providersService";
 
-const CURRENCY = "TND";
+// صور السلايدر
+const sliderImages = [
+  "/bet-affiche.png",
+  "/bet-affiche2.png",
+  "/bet-affiche3.png"
+];
 
-// ============ COMPONENTS ============
+// بيانات المربعات
+const gridButtons = [
+  {
+    title: "Paris En Ligne",
+    icon: <MdOutlineSportsSoccer size={40} color="#FFF" />,
+    live: true,
+  },
+  {
+    title: "Jeux De Casino",
+    icon: <FaDice size={40} color="#FFF" />,
+  },
+  {
+    title: "Paris Sportif",
+    icon: <FaFutbol size={40} color="#FFF" />,
+  },
+  {
+    title: "Jeux Virtuels",
+    icon: <FaGamepad size={40} color="#FFF" />,
+  },
+  {
+    title: "Roue de la Fortune",
+    icon: <GiSpinningWheel size={40} color="#FFF" />,
+  },
+  {
+    title: "Casino En Direct",
+    icon: <FaGem size={40} color="#FFF" />,
+  },
+];
 
-// زر الإغلاق للـ popup
-function CloseButton({ onClick }) {
-  return (
-    <button
-      style={{
-        position: "absolute",
-        top: 10,
-        right: 10,
-        fontWeight: "bold",
-        fontSize: 20,
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        zIndex: 2,
-      }}
-      onClick={onClick}
-      aria-label="إغلاق"
-    >
-      ×
-    </button>
-  );
-}
+const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
 
-// نافذة عامة منبثقة
-function Popup({ children, onClose }) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0, left: 0, right: 0, bottom: 0,
-        background: "rgba(0,0,0,0.3)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          background: "#fff",
-          borderRadius: 8,
-          padding: 30,
-          minWidth: 340,
-          minHeight: 120,
-        }}
-      >
-        <CloseButton onClick={onClose} />
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ========== واجهات الأدمن ==========
-
-function AdminView({ onLogout }) {
-  const [providers, setProviders] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    getAllProviders().then(setProviders);
-  }, []);
-
-  // عند اختيار مزود لعرض سجل العمليات
-  async function handleSeeProviderHistory(provider) {
-    setSelectedProvider(provider);
-    setShowHistory(true);
-    const txs = await getProviderAdminTransactions(provider.id);
-    setTransactions(txs);
-  }
-
+// واجهة مزود
+function ProviderDashboard({ user, onLogout }) {
   return (
     <div>
-      <div style={{ background: "#222", color: "#fff", padding: 16, fontWeight: "bold", fontSize: 18 }}>
-        الأدمن — لوحة التحكم
-        <button style={{ float: "left" }} onClick={onLogout}>Logout</button>
-      </div>
-      <h2>سجل التحويلات بين الأدمن والمزودين</h2>
-      <table border="1" cellPadding={8}>
-        <thead>
-          <tr>
-            <th>اسم المزود</th>
-            <th>الرصيد ({CURRENCY})</th>
-            <th>سجل التحويلات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {providers.map((p) => (
-            <tr key={p.id}>
-              <td>{p.username}</td>
-              <td>{p.balance}</td>
-              <td>
-                <button onClick={() => handleSeeProviderHistory(p)}>voir</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {showHistory && (
-        <Popup onClose={() => setShowHistory(false)}>
-          <h3>سجل العمليات مع المزود: {selectedProvider.username}</h3>
-          <table border="1" cellPadding={6}>
-            <thead>
-              <tr>
-                <th>نوع</th>
-                <th>المبلغ</th>
-                <th>تاريخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx.id}>
-                  <td style={{ color: tx.type === "add" ? "green" : "red" }}>
-                    {tx.type === "add" ? "+" : "-"}
-                  </td>
-                  <td>{tx.amount} {CURRENCY}</td>
-                  <td>{new Date(tx.date).toLocaleString("ar-DZ")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Popup>
-      )}
-
-      {message && (
-        <Popup onClose={() => setMessage("")}>
-          <div>{message}</div>
-        </Popup>
-      )}
-    </div>
-  );
-}
-
-// ========== واجهة المزود ==========
-
-function ProviderView({ provider, onLogout }) {
-  const [tab, setTab] = useState("players");
-  const [players, setPlayers] = useState([]);
-  const [playerSearch, setPlayerSearch] = useState("");
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [showAddBalance, setShowAddBalance] = useState(false);
-  const [showTxPlayer, setShowTxPlayer] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [playerTransactions, setPlayerTransactions] = useState([]);
-  const [showAdminTx, setShowAdminTx] = useState(false);
-  const [adminTransactions, setAdminTransactions] = useState([]);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    refreshPlayers();
-    // eslint-disable-next-line
-  }, []);
-
-  function refreshPlayers() {
-    getPlayersByProvider(provider.id).then(setPlayers);
-  }
-
-  // تسجيل لاعب جديد
-  async function handleAddPlayer(username, password) {
-    try {
-      await addPlayer(username, password, provider.id);
-      setShowAddUser(false);
-      setMessage("تم التسجيل بنجاح!");
-      refreshPlayers();
-    } catch (e) {
-      setMessage(e.message || "لم يتم التسجيل");
-    }
-  }
-
-  // سجل العمليات مع لاعب معيّن
-  async function handleSeePlayerTransactions(player) {
-    setSelectedPlayer(player);
-    setShowTxPlayer(true);
-    const txs = await getProviderPlayerTransactions(provider.id, player.id);
-    setPlayerTransactions(txs);
-  }
-
-  // سجل العمليات مع الأدمن
-  async function handleSeeAdminTransactions() {
-    setShowAdminTx(true);
-    const txs = await getProviderAdminTransactions(provider.id);
-    setAdminTransactions(txs);
-  }
-
-  // إضافة/سحب رصيد للاعب
-  async function handleBalanceChange(player, amount, type) {
-    try {
-      await updatePlayerBalance(player.id, amount, type, provider.id);
-      setMessage("تمت العملية بنجاح!");
-      refreshPlayers();
-    } catch (e) {
-      setMessage(e.message || "خطأ في العملية");
-    }
-  }
-
-  // تصفية بحث اللاعبين
-  const filteredPlayers = players.filter((p) =>
-    p.username.toLowerCase().includes(playerSearch.toLowerCase())
-  );
-
-  return (
-    <div>
-      <div style={{ background: "#222", color: "#fff", padding: 16, fontWeight: "bold", fontSize: 18 }}>
-        المزود: {provider.username} — رصيدك: {provider.balance} {CURRENCY}
-        <button style={{ float: "left" }} onClick={onLogout}>Logout</button>
-      </div>
-      <div style={{ margin: "12px 0" }}>
-        <button onClick={() => setShowAddUser(true)}>New User Registration</button>
-        <button onClick={() => setTab("players")}>Liste of Users</button>
-        <button onClick={() => setTab("balance")}>Add/Withdraw Balance</button>
-        <button onClick={() => setTab("historyPlayers")}>Transaction History Players</button>
-        <button onClick={handleSeeAdminTransactions}>Transaction History Admin</button>
-      </div>
-
-      {/* --- New User Registration --- */}
-      {showAddUser && (
-        <Popup onClose={() => setShowAddUser(false)}>
-          <h3>تسجيل لاعب جديد</h3>
-          <input placeholder="Username" id="username" />
-          <input placeholder="Password" id="password" type="password" />
-          <button
-            onClick={() =>
-              handleAddPlayer(
-                document.getElementById("username").value,
-                document.getElementById("password").value
-              )
-            }
-          >
-            Add
-          </button>
-        </Popup>
-      )}
-
-      {/* --- Liste of Users --- */}
-      {tab === "players" && (
-        <>
-          <h3>قائمة اللاعبين</h3>
-          <input
-            placeholder="بحث عن لاعب"
-            value={playerSearch}
-            onChange={(e) => setPlayerSearch(e.target.value)}
-            style={{ marginBottom: 8 }}
-          />
-          <table border="1" cellPadding={8}>
-            <thead>
-              <tr>
-                <th>اسم اللاعب</th>
-                <th>الرصيد</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPlayers.map((player) => (
-                <tr key={player.id}>
-                  <td>{player.username}</td>
-                  <td>{player.balance} {CURRENCY}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {/* --- Add/Withdraw Balance --- */}
-      {tab === "balance" && (
-        <>
-          <h3>إدارة رصيد اللاعبين</h3>
-          <table border="1" cellPadding={8}>
-            <thead>
-              <tr>
-                <th>اسم اللاعب</th>
-                <th>الرصيد الحالي</th>
-                <th colSpan={2}>عمليات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPlayers.map((player) => (
-                <tr key={player.id}>
-                  <td>{player.username}</td>
-                  <td>{player.balance} {CURRENCY}</td>
-                  <td>
-                    <button
-                      onClick={() => {
-                        const amount = Number(prompt("كم تريد إضافة؟"));
-                        if (!isNaN(amount) && amount > 0)
-                          handleBalanceChange(player, amount, "add");
-                      }}
-                    >
-                      +
-                    </button>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => {
-                        const amount = Number(prompt("كم تريد سحب؟"));
-                        if (!isNaN(amount) && amount > 0)
-                          handleBalanceChange(player, amount, "sub");
-                      }}
-                    >
-                      -
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {/* --- Transaction History Players --- */}
-      {tab === "historyPlayers" && (
-        <>
-          <h3>سجل معاملات اللاعبين</h3>
-          <input
-            placeholder="بحث عن لاعب"
-            value={playerSearch}
-            onChange={(e) => setPlayerSearch(e.target.value)}
-            style={{ marginBottom: 8 }}
-          />
-          <table border="1" cellPadding={8}>
-            <thead>
-              <tr>
-                <th>اسم اللاعب</th>
-                <th>سجل المعاملات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPlayers.map((player) => (
-                <tr key={player.id}>
-                  <td>{player.username}</td>
-                  <td>
-                    <button onClick={() => handleSeePlayerTransactions(player)}>voir</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {/* --- Popup سجل معاملات لاعب --- */}
-      {showTxPlayer && (
-        <Popup onClose={() => setShowTxPlayer(false)}>
-          <h3>سجل المعاملات مع اللاعب: {selectedPlayer?.username}</h3>
-          <table border="1" cellPadding={6}>
-            <thead>
-              <tr>
-                <th>نوع</th>
-                <th>المبلغ</th>
-                <th>تاريخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {playerTransactions.map((tx) => (
-                <tr key={tx.id}>
-                  <td style={{ color: tx.type === "add" ? "green" : "red" }}>
-                    {tx.type === "add" ? "+" : "-"}
-                  </td>
-                  <td>{tx.amount} {CURRENCY}</td>
-                  <td>{new Date(tx.date).toLocaleString("ar-DZ")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Popup>
-      )}
-
-      {/* --- Popup سجل معاملات الأدمن --- */}
-      {showAdminTx && (
-        <Popup onClose={() => setShowAdminTx(false)}>
-          <h3>سجل المعاملات مع الأدمن</h3>
-          <table border="1" cellPadding={6}>
-            <thead>
-              <tr>
-                <th>نوع</th>
-                <th>المبلغ</th>
-                <th>تاريخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {adminTransactions.map((tx) => (
-                <tr key={tx.id}>
-                  <td style={{ color: tx.type === "add" ? "green" : "red" }}>
-                    {tx.type === "add" ? "+" : "-"}
-                  </td>
-                  <td>{tx.amount} {CURRENCY}</td>
-                  <td>{new Date(tx.date).toLocaleString("ar-DZ")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Popup>
-      )}
-
-      {message && (
-        <Popup onClose={() => setMessage("")}>
-          <div>{message}</div>
-        </Popup>
-      )}
-    </div>
-  );
-}
-
-// ========== واجهة اللاعب ==========
-
-function PlayerView({ player, onLogout }) {
-  const [showProfile, setShowProfile] = useState(false);
-
-  return (
-    <div>
-      <div style={{ background: "#222", color: "#fff", padding: 16, fontWeight: "bold", fontSize: 18 }}>
-        <span style={{ float: "right" }}>
-          <button style={{
-            color: "#fff",
-            background: "#222",
-            border: "none",
-            fontSize: 18,
-            cursor: "pointer",
-          }} onClick={() => setShowProfile((v) => !v)}>
-            {player.username}
-          </button>
-          <button style={{ marginRight: 8 }} onClick={onLogout}>Logout</button>
+      <header className="header header-black">
+        <span className="header-title">{user.username}</span>
+        <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
+          {user.balance ?? 0} TND
         </span>
-        مرحبًا بك في منصة اللاعبين
-      </div>
-      {showProfile && (
-        <Popup onClose={() => setShowProfile(false)}>
-          <h3>حسابك</h3>
-          <div>اسم المستخدم: {player.username}</div>
-          <div>رصيدك: {player.balance} {CURRENCY}</div>
-        </Popup>
-      )}
-      <div style={{margin: "30px auto", maxWidth: 540}}>
-        <div style={{background:"#f6f6f6",padding:24,borderRadius: 10, minHeight: 180}}>
-          <h2>الرئيسية</h2>
-          <div>يمكنك لاحقًا استخدام الأقسام: Live / Paris Sportive / Casino</div>
-          <div>قريبًا سيتم دمج الـ APIs الرياضية وألعاب الكازينو.</div>
-        </div>
+        <button onClick={onLogout} style={{marginLeft:"auto", color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer"}}>⏻</button>
+      </header>
+      <div style={{padding: '22px 6px 0 6px'}}>
+        <button className="provider-btn">New User Registration</button>
+        <button className="provider-btn">List of Users</button>
+        <button className="provider-btn">Add/Withdraw Balance</button>
+        <button className="provider-btn">Transaction History Players</button>
+        <button className="provider-btn">Transaction History Account</button>
       </div>
     </div>
   );
 }
 
-// ========== واجهة الدخول ==========
+// واجهة الأدمن الجديدة
+function AdminDashboard({ user, onLogout }) {
+  const [showPassEdit, setShowPassEdit] = useState(false);
+  const [newPass, setNewPass] = useState("");
+  const [msg, setMsg] = useState("");
 
-function LoginView({ onAdmin, onProvider, onPlayer }) {
-  const [tab, setTab] = useState("admin");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  // نافذة إضافة مزود (نفس القديم)
+  const [showAddShop, setShowAddShop] = useState(false);
+  const [shopUsername, setShopUsername] = useState("");
+  const [shopPassword, setShopPassword] = useState("");
+  const [addShopError, setAddShopError] = useState("");
+  const [addShopSuccess, setAddShopSuccess] = useState("");
 
-  async function handleLogin(e) {
-    e.preventDefault();
-    setMessage("");
-    if (tab === "admin") {
-      // دخول الأدمن
-      if (username === "admin" && password === "admin") {
-        onAdmin();
-      } else {
-        setMessage("بيانات الأدمن غير صحيحة");
-      }
-    } else if (tab === "provider") {
-      const provider = await getProviderByCredentials(username, password);
-      if (provider) {
-        onProvider(provider);
-      } else {
-        setMessage("بيانات المزود غير صحيحة");
-      }
-    } else if (tab === "player") {
-      const player = await getPlayerByCredentials(username, password);
-      if (player) {
-        onPlayer(player);
-      } else {
-        setMessage("بيانات اللاعب غير صحيحة");
-      }
+  // قوائم التحكم
+  const [showBalance, setShowBalance] = useState(false);
+  const [showSuspend, setShowSuspend] = useState(false);
+
+  // بيانات المزودين
+  const [providers, setProviders] = useState([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [errProviders, setErrProviders] = useState("");
+
+  // حالة التعديل الفردي
+  const [balanceEdit, setBalanceEdit] = useState({}); // { [providerId]: { type: "add"|"sub", value: "" } }
+
+  // جلب قائمة المزودين
+  const fetchProviders = async () => {
+    setLoadingProviders(true); setErrProviders("");
+    try {
+      const data = await getAllProviders();
+      setProviders(data);
+    } catch(e) {
+      setErrProviders("خطأ في جلب المزودين!");
     }
-  }
+    setLoadingProviders(false);
+  };
 
+  useEffect(() => {
+    if (showBalance || showSuspend) fetchProviders();
+    // Reset edit state
+    setBalanceEdit({});
+  }, [showBalance, showSuspend]);
+
+  // تغيير كلمة السر (وهمي)
+  const handlePassChange = () => {
+    setMsg("تم تغيير كلمة السر (وهميًا)");
+    setTimeout(()=>setMsg(""), 2000);
+    setShowPassEdit(false);
+  };
+
+  // إضافة مزود (نفس القديم)
+  const handleAddShop = async () => {
+    setAddShopError(""); setAddShopSuccess("");
+    try {
+      // استدعاء دالة addProvider من providersService.js
+      const { addProvider } = await import("./providersService");
+      await addProvider(shopUsername.trim(), shopPassword);
+      setAddShopSuccess("تم إضافة المزود بنجاح!");
+      setShopUsername(""); setShopPassword("");
+    } catch (e) {
+      setAddShopError(e.message);
+    }
+  };
+
+  // تعديل الرصيد (إضافة/سحب)
+  const handleBalanceChange = async (id, type) => {
+    const value = balanceEdit[id]?.value;
+    if (!value || isNaN(Number(value))) {
+      alert("أدخل رقم صحيح!");
+      return;
+    }
+    try {
+      // استدعاء دالة updateProviderBalance من providersService.js
+      const { updateProviderBalance } = await import("./providersService");
+      await updateProviderBalance(id, Number(value), type); // type: "add" or "sub"
+      setBalanceEdit(edit => ({ ...edit, [id]: undefined }));
+      fetchProviders();
+    } catch (e) {
+      alert("حدث خطأ أثناء تعديل الرصيد");
+    }
+  };
+
+  // تعليق/إلغاء تعليق
+  const handleSuspend = async (id, isSuspended) => {
+    try {
+      const { suspendProvider } = await import("./providersService");
+      await suspendProvider(id, isSuspended);
+      fetchProviders();
+    } catch (e) {
+      alert("خطأ في التعليق/التفعيل");
+    }
+  };
+
+  // واجهة الأدمن الكاملة
   return (
-    <div style={{
-      background: "#fff",
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }}>
-      <form style={{
-        minWidth: 320, padding: 28, borderRadius: 8, boxShadow: "0 0 18px #eee",
-        background: "#fafafa", position: "relative"
-      }} onSubmit={handleLogin}>
-        <h2>تسجيل الدخول</h2>
-        <div style={{marginBottom: 10}}>
-          <button type="button" onClick={() => setTab("admin")} style={{fontWeight: tab === "admin" ? "bold" : ""}}>أدمن</button>
-          <button type="button" onClick={() => setTab("provider")} style={{fontWeight: tab === "provider" ? "bold" : ""}}>مزود</button>
-          <button type="button" onClick={() => setTab("player")} style={{fontWeight: tab === "player" ? "bold" : ""}}>لاعب</button>
+    <div>
+      <header className="header header-black">
+        <span className="header-title">Admin</span>
+        <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
+          999,999,999 TND
+        </span>
+        <button onClick={() => setShowPassEdit(true)} style={{ background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:6 }} title="تغيير كلمة السر">⚙️</button>
+        <button onClick={onLogout} style={{ color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:2}}>⏻</button>
+      </header>
+      <div style={{padding: '22px 6px 0 6px'}}>
+        <button className="provider-btn" onClick={() => setShowAddShop(true)}>Add Shop</button>
+        <button className="provider-btn" onClick={() => setShowBalance(true)}>Add/Withdraw Balance</button>
+        <button className="provider-btn">Transaction History</button>
+        <button className="provider-btn" onClick={() => setShowSuspend(true)}>Delete Shop</button>
+      </div>
+      {showPassEdit && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:320}}>
+            <h4>تغيير كلمة السر</h4>
+            <input
+              type="password"
+              placeholder="كلمة السر الجديدة"
+              value={newPass}
+              onChange={e=>setNewPass(e.target.value)}
+              autoFocus
+            />
+            <button className="login-btn" onClick={handlePassChange}>تأكيد</button>
+            <button className="login-btn" style={{background:'#ccc', color:'#222'}} onClick={()=>setShowPassEdit(false)}>إلغاء</button>
+            {msg && <div className="login-error" style={{color:'#080'}}>{msg}</div>}
+          </div>
         </div>
-        <input
-          placeholder={tab === "admin" ? "اسم الأدمن" : "اسم المستخدم"}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoFocus
-          style={{ width: "100%", marginBottom: 8 }}
-        />
-        <input
-          type="password"
-          placeholder="كلمة المرور"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ width: "100%", marginBottom: 8 }}
-        />
-        <button type="submit" style={{ width: "100%" }}>دخول</button>
-        {message && <div style={{ color: "red", marginTop: 10 }}>{message}</div>}
-      </form>
+      )}
+      {/* نافذة إضافة مزود */}
+      {showAddShop && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:340}}>
+            <h4>إنشاء حساب مزود جديد</h4>
+            <input
+              type="text"
+              placeholder="اسم المستخدم (حروف أو أرقام)"
+              value={shopUsername}
+              onChange={e => setShopUsername(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="password"
+              placeholder="كلمة المرور (6 أحرف أو أكثر)"
+              value={shopPassword}
+              onChange={e => setShopPassword(e.target.value)}
+            />
+            {addShopError && <div className="login-error">{addShopError}</div>}
+            {addShopSuccess && <div style={{color:'#080',fontWeight:'bold',margin:'6px 0'}}>{addShopSuccess}</div>}
+            <button className="login-btn" onClick={handleAddShop}>إنشاء</button>
+            <button className="login-btn" style={{background:'#ccc',color:'#222'}} onClick={()=>setShowAddShop(false)}>إلغاء</button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة تحكم الرصيد */}
+      {showBalance && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:500}}>
+            <h4>قائمة المزودين (تحكم في الرصيد)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em", borderCollapse:"collapse"}}>
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>الرصيد</th>
+                    <th colSpan={2}>تحكم</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id} style={{opacity: p.suspended ? 0.5 : 1}}>
+                      <td>{p.username}</td>
+                      <td>{p.balance}</td>
+                      <td>
+                        {/* زر زائد */}
+                        <button
+                          style={{
+                            background:"#09c178",
+                            color:"#fff",
+                            border:"none",
+                            borderRadius:"50%",
+                            width:32, height:32,
+                            fontSize:22,
+                            marginRight:8,
+                            cursor:"pointer"
+                          }}
+                          title="إضافة رصيد"
+                          onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: { type: "add", value: "" } }))}
+                          disabled={p.suspended}
+                        >+</button>
+                        {/* حقل إدخال للزائد */}
+                        {balanceEdit[p.id]?.type==="add" && (
+                          <span style={{marginRight:6}}>
+                            <input
+                              type="number"
+                              min="1"
+                              style={{width:70, marginRight:4}}
+                              value={balanceEdit[p.id].value}
+                              placeholder="المبلغ"
+                              onChange={e =>
+                                setBalanceEdit(edit=>({
+                                  ...edit,
+                                  [p.id]: { ...edit[p.id], value: e.target.value }
+                                }))
+                              }
+                            />
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14}}
+                              onClick={()=>handleBalanceChange(p.id, "add")}
+                            >تأكيد</button>
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14, background:"#ccc", color:"#222"}}
+                              onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: undefined }))}
+                            >X</button>
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {/* زر ناقص */}
+                        <button
+                          style={{
+                            background:"#e53935",
+                            color:"#fff",
+                            border:"none",
+                            borderRadius:"50%",
+                            width:32, height:32,
+                            fontSize:22,
+                            marginRight:8,
+                            cursor:"pointer"
+                          }}
+                          title="سحب رصيد"
+                          onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: { type: "sub", value: "" } }))}
+                          disabled={p.suspended}
+                        >-</button>
+                        {/* حقل إدخال للناقص */}
+                        {balanceEdit[p.id]?.type==="sub" && (
+                          <span style={{marginRight:6}}>
+                            <input
+                              type="number"
+                              min="1"
+                              style={{width:70, marginRight:4}}
+                              value={balanceEdit[p.id].value}
+                              placeholder="المبلغ"
+                              onChange={e =>
+                                setBalanceEdit(edit=>({
+                                  ...edit,
+                                  [p.id]: { ...edit[p.id], value: e.target.value }
+                                }))
+                              }
+                            />
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14}}
+                              onClick={()=>handleBalanceChange(p.id, "sub")}
+                            >تأكيد</button>
+                            <button
+                              className="login-btn"
+                              style={{padding:"3px 10px", fontSize:14, background:"#ccc", color:"#222"}}
+                              onClick={() => setBalanceEdit(edit => ({ ...edit, [p.id]: undefined }))}
+                            >X</button>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowBalance(false)}>إغلاق</button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة تعليق الحسابات */}
+      {showSuspend && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:410}}>
+            <h4>قائمة المزودين (تعليق/تفعيل الحسابات)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em"}}>
+                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
+                      <td>
+                        <button
+                          style={{
+                            background: p.suspended ? "#09c178" : "#e53935",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "4px 12px",
+                            fontWeight:"bold",
+                            fontSize:15,
+                            cursor:"pointer"
+                          }}
+                          onClick={()=>handleSuspend(p.id, !p.suspended)}
+                        >
+                          {p.suspended ? "تفعيل" : "تعليق"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-// ========== التطبيق الرئيسي ==========
+// الحساب الإداري الثابت
+const ADMIN_ACCOUNT = {
+  username: "ridhasnow",
+  password: "azerty12345",
+  role: "admin",
+  balance: 999999999,
+};
 
-export default function App() {
-  const [session, setSession] = useState({ type: null, user: null });
+function App() {
+  // سلايدر الصور
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % sliderImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
-  // لا localStorage — الجلسة تبقى فقط طالما الصفحة مفتوحة، إذا حدث refresh يرجع للدخول
+  // فتح قائمة مباريات لايف
+  const [showLive, setShowLive] = useState(false);
 
-  function handleLogout() {
-    setSession({ type: null, user: null });
+  // جلب مباريات اليوم من football-data.org
+  const [liveMatches, setLiveMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (showLive) {
+      setLoading(true);
+      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
+        headers: {
+          "X-Auth-Token": FOOTBALL_API_KEY,
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          const matches = (data.matches || []).slice(0, 10).map(ev => ({
+            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
+            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
+            odds: [
+              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
+              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+            ],
+          }));
+          setLiveMatches(matches);
+          setLoading(false);
+        });
+    }
+  }, [showLive]);
+
+  // اختيار رهان (للتوضيح فقط)
+  const [selectedBet, setSelectedBet] = useState(null);
+
+  // نظام الدخول
+  const [auth, setAuth] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
+
+  // زر تسجيل الخروج
+  const handleLogout = () => {
+    setAuth(null);
+    setShowLogin(false);
+  };
+
+  // في حال مزود
+  if (auth?.role === "provider") {
+    return <ProviderDashboard user={auth} onLogout={handleLogout} />;
   }
+  // في حال الأدمن
+  if (auth?.role === "admin") {
+    return <AdminDashboard user={auth} onLogout={handleLogout} />;
+  }
+  // في حال لاعب أو زائر عادي
+  return (
+    <div className="main-wrapper" style={{background:"#fff"}}>
+      {/* Header */}
+      <header className="header header-black">
+        <span className="header-title">Accueil</span>
+        <img src="/cazabet.png" alt="Cazabet Logo" className="header-logo" />
+      </header>
 
-  if (!session.type) {
-    return (
-      <LoginView
-        onAdmin={() => setSession({ type: "admin", user: { username: "admin" } })}
-        onProvider={(provider) => setSession({ type: "provider", user: provider })}
-        onPlayer={(player) => setSession({ type: "player", user: player })}
-      />
-    );
-  }
+      {/* Slider */}
+      <div className="slider-holder">
+        <img
+          src={sliderImages[current]}
+          alt="affiche"
+          className="slider-img"
+        />
+      </div>
 
-  if (session.type === "admin") {
-    return <AdminView onLogout={handleLogout} />;
-  }
-  if (session.type === "provider") {
-    return <ProviderView provider={session.user} onLogout={handleLogout} />;
-  }
-  if (session.type === "player") {
-    return <PlayerView player={session.user} onLogout={handleLogout} />;
-  }
+      {/* Grid */}
+      <main className="grid-container grid-3">
+        {gridButtons.map((btn, idx) => (
+          <div
+            className={`grid-item grid-blue`}
+            key={idx}
+            onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
+          >
+            <div className="icon-holder">
+              {btn.icon}
+              {btn.live && (
+                <span className="live-dot" />
+              )}
+            </div>
+            <div className="title">{btn.title}</div>
+          </div>
+        ))}
+      </main>
 
-  return null;
+      {/* Pop-up Live Matches */}
+      {showLive && (
+        <div className="live-popup">
+          <div className="live-popup-content">
+            <h3>Live Matches</h3>
+            <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
+            {loading ? (
+              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+            ) : (
+              <div className="live-matches-list">
+                {liveMatches.map((match, i) => (
+                  <div className="live-match-row" key={i}>
+                    <div className="teams">{match.teams}</div>
+                    <div className="time">{match.time}</div>
+                    <div className="odds">
+                      {match.odds.map((odd, j) => (
+                        <button
+                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          key={j}
+                          onClick={() => setSelectedBet(`${i}-${j}`)}
+                        >
+                          {odd.label}
+                          <span>{odd.value}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {liveMatches.length === 0 && (
+                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom navigation */}
+      <nav className="bottom-nav">
+        <div className="nav-btn">
+          <FaHome size={28} />
+          <span>Home</span>
+        </div>
+        <div className="nav-btn" onClick={() => setShowLogin(true)}>
+          <FaSignInAlt size={28} />
+          <span>Login</span>
+        </div>
+        <div className="nav-btn">
+          <FaFutbol size={28} />
+          <span>Paris Sportif</span>
+        </div>
+      </nav>
+      {/* نافذة الدخول */}
+      {showLogin && !auth && (
+        <AuthSystem onLogin={(acc) => { setAuth(acc); setShowLogin(false); }} />
+      )}
+    </div>
+  );
 }
+
+export default App;
