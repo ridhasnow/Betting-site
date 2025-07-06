@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getAllProviders, addProvider, updateProviderBalance, suspendProvider, getProviderByCredentials } from "./providersService";
+import { getAllProviders, addProvider, updateProviderBalance, suspendProvider } from "./providersService";
 import { addTransaction, getTransactionsBetween } from "./transactionsService";
 
 function AdminDashboard({ user, onLogout }) {
@@ -11,13 +11,12 @@ function AdminDashboard({ user, onLogout }) {
   const [txList, setTxList] = useState([]);
   const [txTargetProvider, setTxTargetProvider] = useState(null);
   const [showSuspend, setShowSuspend] = useState(false);
-
-  // --- إضافة مزود جديد (Add Shop) ---
   const [showAddShop, setShowAddShop] = useState(false);
   const [shopUsername, setShopUsername] = useState("");
   const [shopPassword, setShopPassword] = useState("");
   const [addShopError, setAddShopError] = useState("");
   const [addShopSuccess, setAddShopSuccess] = useState("");
+  const [showProviderTxModal, setShowProviderTxModal] = useState(false); // جديد
 
   const fetchProviders = async () => {
     setLoadingProviders(true);
@@ -40,7 +39,6 @@ function AdminDashboard({ user, onLogout }) {
     }
     try {
       await updateProviderBalance(id, Number(value), type); // type: "add" or "sub"
-      // سجل معاملة بين الأدمن والمزود
       await addTransaction({
         fromId: type === "add" ? "admin" : id,
         fromType: "admin",
@@ -59,7 +57,7 @@ function AdminDashboard({ user, onLogout }) {
   // سجل المعاملات مع مزود
   const handleShowTx = async (provider) => {
     setTxTargetProvider(provider);
-    setShowTxList(true);
+    setShowProviderTxModal(true); // فتح النافذة الجديدة
     const txs = await getTransactionsBetween("admin", provider.id);
     setTxList(txs);
   };
@@ -110,7 +108,7 @@ function AdminDashboard({ user, onLogout }) {
         <button className="provider-btn" onClick={()=>setShowAddShop(true)}>Add Shop</button>
         <button className="provider-btn" onClick={()=>setShowBalance(true)}>Add/Withdraw Balance</button>
         <button className="provider-btn" onClick={()=>setShowSuspend(true)}>Delete Shop</button>
-        <button className="provider-btn" onClick={()=>fetchProviders()}>Transaction History</button>
+        <button className="provider-btn" onClick={fetchProviders}>Transaction History</button>
       </div>
 
       {/* نافذة إضافة متجر (مزود) جديد */}
@@ -301,61 +299,64 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* نافذة سجل التحويلات لكل مزود */}
-      <div className="modal-bg" style={{display:showTxList?"flex":"none"}} onClick={()=>setShowTxList(false)}>
-        <div className="modal-login" style={{maxWidth:340}} onClick={e=>e.stopPropagation()}>
-          <button className="close-btn" onClick={()=>setShowTxList(false)} style={{position:"absolute",top:8,right:12}}>×</button>
-          <h4>سجل {txTargetProvider?.username}</h4>
-          <table style={{width:"100%", fontSize:"1em"}}>
-            <thead>
-              <tr>
-                <th>التاريخ</th>
-                <th>المعاملة</th>
-                <th>المبلغ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {txList.length === 0 && (
-                <tr><td colSpan={3} style={{textAlign:"center",color:"#999"}}>لا يوجد معاملات</td></tr>
-              )}
-              {txList.map((tx,i)=>(
-                <tr key={i}>
-                  <td>{new Date(tx.date).toLocaleString()}</td>
-                  <td style={{color:tx.action==="add"?"green":"red"}}>{tx.action === "add" ? "+" : "-"}</td>
-                  <td>{tx.amount} TND</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowTxList(false)}>إغلاق</button>
+      {/* سجل التحويلات مع المزودين (الجدول الرئيسي مع أزرار voir) */}
+      {!showBalance && !showSuspend && providers.length > 0 && (
+        <div style={{margin:"18px 0"}}>
+          <div className="modal-login" style={{maxWidth:440, minWidth:300, margin:"0 auto"}}>
+            <h4>سجل التحويلات مع المزودين</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              <table style={{width:"100%", fontSize:"1em"}}>
+                <thead>
+                  <tr><th>الاسم</th><th>الرصيد</th><th>سجل التحويلات</th></tr>
+                </thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.balance} TND</td>
+                      <td>
+                        <button className="login-btn" style={{fontSize:14, padding:"4px 10px"}} onClick={()=>handleShowTx(p)}>voir</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* زر سجل التحويلات (زر voir أمام كل مزود) */}
-      <div className="modal-bg" style={{display:!showBalance && !showSuspend && providers.length>0 ? "flex":"none"}}>
-        <div className="modal-login" style={{maxWidth:440, minWidth:300}} onClick={e=>e.stopPropagation()}>
-          <h4>سجل التحويلات مع المزودين</h4>
-          {loadingProviders ? <div>جاري التحميل...</div> :
+      {/* نافذة سجل التحويلات لكل مزود */}
+      {showProviderTxModal && (
+        <div className="modal-bg" onClick={()=>setShowProviderTxModal(false)}>
+          <div className="modal-login" style={{maxWidth:340}} onClick={e=>e.stopPropagation()}>
+            <button className="close-btn" onClick={()=>setShowProviderTxModal(false)} style={{position:"absolute",top:8,right:12}}>×</button>
+            <h4>سجل {txTargetProvider?.username}</h4>
             <table style={{width:"100%", fontSize:"1em"}}>
               <thead>
-                <tr><th>الاسم</th><th>الرصيد</th><th>سجل التحويلات</th></tr>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>المعاملة</th>
+                  <th>المبلغ</th>
+                </tr>
               </thead>
               <tbody>
-                {providers.map(p=>(
-                  <tr key={p.id}>
-                    <td>{p.username}</td>
-                    <td>{p.balance} TND</td>
-                    <td>
-                      <button className="login-btn" style={{fontSize:14, padding:"4px 10px"}} onClick={()=>handleShowTx(p)}>voir</button>
-                    </td>
+                {txList.length === 0 && (
+                  <tr><td colSpan={3} style={{textAlign:"center",color:"#999"}}>لا يوجد معاملات</td></tr>
+                )}
+                {txList.map((tx,i)=>(
+                  <tr key={i}>
+                    <td>{new Date(tx.date).toLocaleString()}</td>
+                    <td style={{color:tx.action==="add"?"green":"red"}}>{tx.action === "add" ? "+" : "-"}</td>
+                    <td>{tx.amount} TND</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          }
-          <button className="login-btn" style={{marginTop:10}} onClick={()=>{}}>إغلاق</button>
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowProviderTxModal(false)}>إغلاق</button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
