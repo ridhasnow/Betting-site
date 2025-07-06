@@ -53,7 +53,7 @@ function ProviderDashboard({ user, onLogout }) {
       <header className="header header-black">
         <span className="header-title">{user.username}</span>
         <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
-          {user.balance ?? 0} DZD
+          {user.balance ?? 0} TND
         </span>
         <button onClick={onLogout} style={{marginLeft:"auto", color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer"}}>⏻</button>
       </header>
@@ -167,7 +167,7 @@ function AdminDashboard({ user, onLogout }) {
       <header className="header header-black">
         <span className="header-title">Admin</span>
         <span style={{color:'#fff', fontWeight:'bold', fontSize:'1.1em', background:'#2176c1', borderRadius:8, padding:'6px 14px', marginLeft:'12px'}}>
-          999,999,999 DZD
+          999,999,999 TND
         </span>
         <button onClick={() => setShowPassEdit(true)} style={{ background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:6 }} title="تغيير كلمة السر">⚙️</button>
         <button onClick={onLogout} style={{ color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer", marginLeft:2}}>⏻</button>
