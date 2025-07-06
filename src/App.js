@@ -1,51 +1,29 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
-import { FaHome, FaSignInAlt, FaFutbol, FaDice, FaGem, FaGamepad } from "react-icons/fa";
-import { GiSpinningWheel } from "react-icons/gi";
-import { MdOutlineSportsSoccer } from "react-icons/md";
-import AuthSystem from "./AuthSystem";
-import { addProvider } from "./providersService"; // أضف هذا السطر لاستيراد خدمة إضافة المزودين
+// ... باقي الاستيرادات
+import {
+  addProvider,
+  getAllProviders,
+  updateProviderBalance,
+  suspendProvider,
+  getProviderByCredentials
+} from "./providersService";
 
-// صور السلايدر
-const sliderImages = [
-  "/bet-affiche.jpg",
-  "/bet-affiche2.jpg",
-  "/bet-affiche3.jpg"
-];
+// ... بقية الكود
 
-// بيانات المربعات
-const gridButtons = [
-  {
-    title: "Paris En Ligne",
-    icon: <MdOutlineSportsSoccer size={40} color="#FFF" />,
-    live: true, // لإظهار النقطة الحمراء
-  },
-  {
-    title: "Jeux De Casino",
-    icon: <FaDice size={40} color="#FFF" />,
-  },
-  {
-    title: "Paris Sportif",
-    icon: <FaFutbol size={40} color="#FFF" />,
-  },
-  {
-    title: "Jeux Virtuels",
-    icon: <FaGamepad size={40} color="#FFF" />,
-  },
-  {
-    title: "Roue de la Fortune",
-    icon: <GiSpinningWheel size={40} color="#FFF" />,
-  },
-  {
-    title: "Casino En Direct",
-    icon: <FaGem size={40} color="#FFF" />,
-  },
-];
-
-const FOOTBALL_API_KEY = "c25adbeecce0469e8ff30485070581db";
-
-// واجهة مزود بسيطة مؤقتًا
+// واجهة مزود مع رسالة "حسابك معلق"
 function ProviderDashboard({ user, onLogout }) {
+  if (user.suspended) {
+    return (
+      <div>
+        <header className="header header-black">
+          <span className="header-title">{user.username}</span>
+          <button onClick={onLogout} style={{marginLeft:"auto", color:'#fff', background:'transparent', border:'none', fontSize:"1.2em", cursor:"pointer"}}>⏻</button>
+        </header>
+        <div style={{padding:40, textAlign:'center', color:'red', fontWeight:'bold', fontSize:'1.2em'}}>
+          حسابك معلق حاليا. يرجى التواصل مع الإدارة.
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <header className="header header-black">
@@ -66,7 +44,7 @@ function ProviderDashboard({ user, onLogout }) {
   );
 }
 
-// واجهة الأدمن مع نافذة إضافة مزود جديدة
+// AdminDashboard مع التحكم بالرصد و التعليق
 function AdminDashboard({ user, onLogout }) {
   const [showPassEdit, setShowPassEdit] = useState(false);
   const [newPass, setNewPass] = useState("");
@@ -76,15 +54,35 @@ function AdminDashboard({ user, onLogout }) {
   const [shopPassword, setShopPassword] = useState("");
   const [addShopError, setAddShopError] = useState("");
   const [addShopSuccess, setAddShopSuccess] = useState("");
+  const [showBalance, setShowBalance] = useState(false);
+  const [showSuspend, setShowSuspend] = useState(false);
 
-  // كلمة السر ثابتة في هذا النموذج (التعديل غير حقيقي لأنه Mock)
+  const [providers, setProviders] = useState([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [errProviders, setErrProviders] = useState("");
+
+  // جلب قائمة المزودين
+  const fetchProviders = async () => {
+    setLoadingProviders(true); setErrProviders("");
+    try {
+      const data = await getAllProviders();
+      setProviders(data);
+    } catch(e) {
+      setErrProviders("خطأ في جلب المزودين!");
+    }
+    setLoadingProviders(false);
+  };
+
+  useEffect(() => {
+    if (showBalance || showSuspend) fetchProviders();
+  }, [showBalance, showSuspend]);
+
   const handlePassChange = () => {
     setMsg("تم تغيير كلمة السر (وهميًا)");
     setTimeout(()=>setMsg(""), 2000);
     setShowPassEdit(false);
   };
 
-  // إضافة مزود جديد عبر Firestore
   const handleAddShop = async () => {
     setAddShopError(""); setAddShopSuccess("");
     try {
@@ -94,6 +92,20 @@ function AdminDashboard({ user, onLogout }) {
     } catch (e) {
       setAddShopError(e.message);
     }
+  };
+
+  const handleBalanceChange = async (id, currentBalance) => {
+    const amount = prompt("أدخل الرصيد الجديد:", currentBalance);
+    if (amount === null) return;
+    const value = Number(amount);
+    if (isNaN(value)) return alert("أدخل رقم صحيح!");
+    await updateProviderBalance(id, value);
+    fetchProviders();
+  };
+
+  const handleSuspend = async (id, isSuspended) => {
+    await suspendProvider(id, isSuspended);
+    fetchProviders();
   };
 
   return (
@@ -108,9 +120,9 @@ function AdminDashboard({ user, onLogout }) {
       </header>
       <div style={{padding: '22px 6px 0 6px'}}>
         <button className="provider-btn" onClick={() => setShowAddShop(true)}>Add Shop</button>
-        <button className="provider-btn">Add/Withdraw Balance</button>
+        <button className="provider-btn" onClick={() => setShowBalance(true)}>Add/Withdraw Balance</button>
         <button className="provider-btn">Transaction History</button>
-        <button className="provider-btn">Delete Shop</button>
+        <button className="provider-btn" onClick={() => setShowSuspend(true)}>Delete Shop</button>
       </div>
       {showPassEdit && (
         <div className="modal-bg">
@@ -154,170 +166,79 @@ function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function App() {
-  // سلايدر الصور
-  const [current, setCurrent] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % sliderImages.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // فتح قائمة مباريات لايف
-  const [showLive, setShowLive] = useState(false);
-
-  // جلب مباريات اليوم من football-data.org
-  const [liveMatches, setLiveMatches] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (showLive) {
-      setLoading(true);
-      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
-        headers: {
-          "X-Auth-Token": FOOTBALL_API_KEY,
-        },
-      })
-        .then(res => res.json())
-        .then(data => {
-          const matches = (data.matches || []).slice(0, 10).map(ev => ({
-            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
-            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
-            odds: [
-              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
-              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
-              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
-              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
-              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
-            ],
-          }));
-          setLiveMatches(matches);
-          setLoading(false);
-        });
-    }
-  }, [showLive]);
-
-  // اختيار رهان (للتوضيح فقط)
-  const [selectedBet, setSelectedBet] = useState(null);
-
-  // نظام الدخول
-  const [auth, setAuth] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
-
-  // زر تسجيل الخروج
-  const handleLogout = () => {
-    setAuth(null);
-    setShowLogin(false);
-  };
-
-  // في حال مزود
-  if (auth?.role === "provider") {
-    return <ProviderDashboard user={auth} onLogout={handleLogout} />;
-  }
-  // في حال الأدمن
-  if (auth?.role === "admin") {
-    return <AdminDashboard user={auth} onLogout={handleLogout} />;
-  }
-  // في حال لاعب أو زائر عادي
-  return (
-    <div className="main-wrapper" style={{background:"#fff"}}>
-      {/* Header */}
-      <header className="header header-black">
-        <span className="header-title">Accueil</span>
-        <img src="/cazabet.png" alt="Cazabet Logo" className="header-logo" />
-      </header>
-
-      {/* Slider */}
-      <div className="slider-holder">
-        <img
-          src={sliderImages[current]}
-          alt="affiche"
-          className="slider-img"
-        />
-      </div>
-
-      {/* Grid */}
-      <main className="grid-container grid-3">
-        {gridButtons.map((btn, idx) => (
-          <div
-            className={`grid-item grid-blue`}
-            key={idx}
-            onClick={() => btn.title === "Paris En Ligne" && setShowLive(true)}
-          >
-            <div className="icon-holder">
-              {btn.icon}
-              {btn.live && (
-                <span className="live-dot" />
-              )}
-            </div>
-            <div className="title">{btn.title}</div>
-          </div>
-        ))}
-      </main>
-
-      {/* Pop-up Live Matches */}
-      {showLive && (
-        <div className="live-popup">
-          <div className="live-popup-content">
-            <h3>Live Matches</h3>
-            <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
-            {loading ? (
-              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
-            ) : (
-              <div className="live-matches-list">
-                {liveMatches.map((match, i) => (
-                  <div className="live-match-row" key={i}>
-                    <div className="teams">{match.teams}</div>
-                    <div className="time">{match.time}</div>
-                    <div className="odds">
-                      {match.odds.map((odd, j) => (
+      {/* نافذة التحكم في الأرصدة */}
+      {showBalance && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:410}}>
+            <h4>قائمة المزودين (تحكم في الرصيد)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em"}}>
+                <thead><tr><th>الاسم</th><th>الرصيد</th><th>تحكم</th></tr></thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id} style={{opacity: p.suspended ? 0.5 : 1}}>
+                      <td>{p.username}</td>
+                      <td>{p.balance}</td>
+                      <td>
                         <button
-                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
-                          key={j}
-                          onClick={() => setSelectedBet(`${i}-${j}`)}
+                          style={{background:"#2176c1", color:"#fff", border:"none", borderRadius:6, padding:"4px 10px", cursor:"pointer"}}
+                          onClick={()=>handleBalanceChange(p.id, p.balance)}
+                          disabled={p.suspended}
                         >
-                          {odd.label}
-                          <span>{odd.value}</span>
+                          تعديل الرصيد
                         </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {liveMatches.length === 0 && (
-                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
-                )}
-              </div>
-            )}
+                        {p.suspended && <span style={{color:"red",marginRight:8}}>معلق</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowBalance(false)}>إغلاق</button>
           </div>
         </div>
       )}
 
-      {/* Bottom navigation */}
-      <nav className="bottom-nav">
-        <div className="nav-btn">
-          <FaHome size={28} />
-          <span>Home</span>
+      {/* نافذة تعليق الحسابات */}
+      {showSuspend && (
+        <div className="modal-bg">
+          <div className="modal-login" style={{maxWidth:410}}>
+            <h4>قائمة المزودين (تعليق الحسابات)</h4>
+            {loadingProviders ? <div>جاري التحميل...</div> :
+              errProviders ? <div style={{color:'red'}}>{errProviders}</div> :
+              <table style={{width:"100%", fontSize:"1em"}}>
+                <thead><tr><th>الاسم</th><th>الحالة</th><th>تعليق/إلغاء</th></tr></thead>
+                <tbody>
+                  {providers.map(p=>(
+                    <tr key={p.id}>
+                      <td>{p.username}</td>
+                      <td>{p.suspended ? <span style={{color:"red"}}>معلق</span> : <span style={{color:"green"}}>نشط</span>}</td>
+                      <td>
+                        <button
+                          style={{
+                            background: p.suspended ? "#ffcc00" : "#09c178",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "4px 10px",
+                            cursor:"pointer"
+                          }}
+                          onClick={()=>handleSuspend(p.id, !p.suspended)}
+                        >
+                          {p.suspended ? "إلغاء التعليق" : "تعليق"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+            <button className="login-btn" style={{marginTop:10}} onClick={()=>setShowSuspend(false)}>إغلاق</button>
+          </div>
         </div>
-        <div className="nav-btn" onClick={() => setShowLogin(true)}>
-          <FaSignInAlt size={28} />
-          <span>Login</span>
-        </div>
-        <div className="nav-btn">
-          <FaFutbol size={28} />
-          <span>Paris Sportif</span>
-        </div>
-      </nav>
-      {/* نافذة الدخول */}
-      {showLogin && !auth && (
-        <AuthSystem onLogin={(acc) => { setAuth(acc); setShowLogin(false); }} />
       )}
     </div>
   );
 }
-
-export default App;
