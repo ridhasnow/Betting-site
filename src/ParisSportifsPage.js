@@ -24,19 +24,12 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = ()=>{}, cart = [] } = betCart;
 
-  // جلب كل الرياضات المتوفرة (مرة واحدة عند التحميل)
+  // جلب فقط الرياضات المدعومة (من sportsApi.js)
   useEffect(() => {
     setError("");
-    getAllSports()
-      .then(result => {
-        // حماية إضافية إذا النتيجة فارغة
-        if (Array.isArray(result) && result.length > 0) setSports(result);
-        else setSports([{ strSport: "Soccer" }]);
-      })
-      .catch(() => {
-        setError("خطأ في تحميل الرياضات، حاول لاحقاً");
-        setSports([{ strSport: "Soccer" }]);
-      });
+    getAllSports().then(result => {
+      setSports(result);
+    });
   }, []);
 
   // جلب كل البطولات (leagues) للرياضة المختارة
@@ -48,8 +41,13 @@ export default function ParisSportifsPage() {
     setEvents([]);
     getLeaguesBySport(selectedSport)
       .then(result => {
-        if (Array.isArray(result) && result.length > 0) setLeagues(result);
-        else setLeagues([]);
+        if (Array.isArray(result) && result.length > 0) {
+          setLeagues(result);
+          setError(""); // لا تظهر خطأ
+        } else {
+          setLeagues([]);
+          setError(""); // رياضة بدون بطولات، لا تظهر خطأ
+        }
       })
       .catch(() => {
         setError("خطأ في تحميل البطولات، حاول لاحقاً");
@@ -115,6 +113,10 @@ export default function ParisSportifsPage() {
               >{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</button>
             ))}
           </div>
+          {/* رسالة في حال لا يوجد بطولات */}
+          {!error && leagues.length === 0 && (
+            <div style={{color:"#888", margin:"12px 0"}}>لا توجد بطولات متوفرة لهذه الرياضة</div>
+          )}
         </div>
 
         {/* عرض المباريات */}
