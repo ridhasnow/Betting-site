@@ -1,4 +1,3 @@
-// استعمل فقط الرياضات المدعومة (لها بطولات فعلية في TheSportsDB)
 export const SUPPORTED_SPORTS = [
   { strSport: "Soccer" },
   { strSport: "Basketball" },
@@ -17,15 +16,15 @@ const BASE_URL_V2 = "https://www.thesportsdb.com/api/v2/json/" + API_KEY + "/";
 
 // جلب الرياضات المدعومة فقط
 export async function getAllSports() {
-  // بإمكانك إضافة جلب ديناميكي من v1 لو أردت، لكن هنا نعيد فقط SUPPORTED_SPORTS
   return SUPPORTED_SPORTS;
 }
 
-// جلب البطولات لرياضة معينة => يجب استعمال v1 هنا!
+// جلب البطولات لرياضة معينة => يجب استعمال v1 هنا فقط!
 export async function getLeaguesBySport(sport = "Soccer") {
   const res = await fetch(BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
-  return data.countrys || [];
+  // بعض الأحيان leagues أو countrys
+  return data.countrys || data.leagues || [];
 }
 
 // جلب المباريات القادمة لبطولة معينة
@@ -36,12 +35,8 @@ export async function getUpcomingEventsByLeague(idLeague) {
 }
 
 // جلب نتائج مباشرة حسب الرياضة
-
-
-// نفس التعريفات السابقة...
-export async function getLeaguesBySport(sport = "Soccer") {
-  const res = await fetch(BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
+export async function getLiveScoresBySport(sport = "soccer") {
+  const res = await fetch(BASE_URL_V2 + "livescore.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
-  // بعض الأحيان leagues أو countrys
-  return data.countrys || data.leagues || [];
+  return data.events || [];
 }
