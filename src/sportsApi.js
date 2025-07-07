@@ -21,9 +21,10 @@ export async function getAllSports() {
 
 // جلب البطولات لرياضة معينة => يجب استعمال v1 هنا فقط!
 export async function getLeaguesBySport(sport = "Soccer") {
-  const res = await fetch(BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
+  const url = BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport);
+  const res = await fetch(url);
   const data = await res.json();
-  // بعض الأحيان leagues أو countrys
+  console.log("getLeaguesBySport", sport, url, data); // هام لمراقبة النتيجة الفعلية
   return data.countrys || data.leagues || [];
 }
 
