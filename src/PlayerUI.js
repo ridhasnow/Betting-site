@@ -43,3 +43,14 @@ export default function PlayerUI({ user, onLogout }) {
     </header>
   );
 }
+// ... باقي الكود كما هو ...
+{show && (
+  <div className="modal-bg" onClick={()=>setShow(false)}>
+    <div className="modal-login" style={{maxWidth:220}} onClick={e=>e.stopPropagation()}>
+      <h4>رصيدك</h4>
+      <div style={{color:"#2176c1", fontWeight:"bold", fontSize:"1.3em", margin:"18px 0"}}>{user.balance ?? 0} TND</div>
+      <button className="login-btn" style={{marginBottom:8}} onClick={()=>window.location='/my-bets'}>my bet</button>
+      <button className="login-btn" onClick={()=>setShow(false)}>إغلاق</button>
+    </div>
+  </div>
+)}
