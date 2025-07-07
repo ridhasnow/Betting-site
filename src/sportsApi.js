@@ -36,8 +36,12 @@ export async function getUpcomingEventsByLeague(idLeague) {
 }
 
 // جلب نتائج مباشرة حسب الرياضة
-export async function getLiveScoresBySport(sport = "soccer") {
-  const res = await fetch(BASE_URL_V2 + "livescore.php?s=" + encodeURIComponent(sport));
+
+
+// نفس التعريفات السابقة...
+export async function getLeaguesBySport(sport = "Soccer") {
+  const res = await fetch(BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
-  return data.events || [];
+  // بعض الأحيان leagues أو countrys
+  return data.countrys || data.leagues || [];
 }
