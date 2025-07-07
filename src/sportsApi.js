@@ -1,59 +1,46 @@
-// إعدادات API المدفوعة v2
+// استخدم v1 فقط لجلب الرياضات (لأن v2 لا تدعم all_sports.php)
 const API_KEY = "807217";
-const BASE_URL = "https://www.thesportsdb.com/api/v2/json/" + API_KEY + "/";
+// v1 لgetAllSports فقط، الباقي v2
+const BASE_URL_V1 = "https://www.thesportsdb.com/api/v1/json/" + API_KEY + "/";
+const BASE_URL_V2 = "https://www.thesportsdb.com/api/v2/json/" + API_KEY + "/";
 
-// جلب كل الرياضات المتوفرة
+// قائمة ثابتة للرياضات الأكثر شهرة (لو تحب)
+export const STATIC_SPORTS = [
+  { strSport: "Soccer" },
+  { strSport: "Basketball" },
+  { strSport: "Tennis" },
+  { strSport: "Volleyball" },
+  { strSport: "Rugby" }
+];
+
+// جلب كل الرياضات (من v1 فقط)
 export async function getAllSports() {
-  const res = await fetch(BASE_URL + "all_sports.php");
-  const data = await res.json();
-  return data.sports || [];
+  try {
+    const res = await fetch(BASE_URL_V1 + "all_sports.php");
+    const data = await res.json();
+    return data.sports || STATIC_SPORTS;
+  } catch {
+    return STATIC_SPORTS;
+  }
 }
 
-// جلب كل البطولات لرياضة معينة (مثلاً Soccer أو Basketball ...)
+// جلب كل البطولات لرياضة معينة
 export async function getLeaguesBySport(sport = "Soccer") {
-  const res = await fetch(BASE_URL + "search_all_leagues.php?s=" + encodeURIComponent(sport));
+  const res = await fetch(BASE_URL_V2 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
   return data.countrys || [];
 }
 
-// جلب المباريات القادمة لبطولة معينة
+// جلب المباريات القادمة لبطولة
 export async function getUpcomingEventsByLeague(idLeague) {
-  const res = await fetch(BASE_URL + "eventsnextleague.php?id=" + idLeague);
+  const res = await fetch(BASE_URL_V2 + "eventsnextleague.php?id=" + idLeague);
   const data = await res.json();
   return data.events || [];
 }
 
-// جلب نتائج آخر مباريات لبطولة معينة
-export async function getLastEventsByLeague(idLeague) {
-  const res = await fetch(BASE_URL + "eventspastleague.php?id=" + idLeague);
-  const data = await res.json();
-  return data.events || [];
-}
-
-// جلب تفاصيل مباراة واحدة
-export async function getEventDetails(idEvent) {
-  const res = await fetch(BASE_URL + "lookupevent.php?id=" + idEvent);
-  const data = await res.json();
-  return data.events && data.events[0];
-}
-
-// جلب كل الفرق لبطولة (دوري)
-export async function getTeamsByLeague(idLeague) {
-  const res = await fetch(BASE_URL + "lookup_all_teams.php?id=" + idLeague);
-  const data = await res.json();
-  return data.teams || [];
-}
-
-// جلب نتائج مباشرة (Live Score) لرياضة معينة (مثلاً soccer, basketball...)
+// جلب نتائج مباشرة (LIVE)
 export async function getLiveScoresBySport(sport = "soccer") {
-  const res = await fetch(BASE_URL + "livescore.php?s=" + encodeURIComponent(sport));
+  const res = await fetch(BASE_URL_V2 + "livescore.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
   return data.events || [];
-}
-
-// جلب قائمة الدول المتاحة (للإكسرا، ممكن تفيد لاحقاً)
-export async function getAllCountries() {
-  const res = await fetch(BASE_URL + "all_countries.php");
-  const data = await res.json();
-  return data.countries || [];
 }
