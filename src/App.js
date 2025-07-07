@@ -6,7 +6,9 @@ import {
   FaDice,          // Jeux De Casino
   FaPlayCircle,    // Casino En Direct
   FaGift,          // Roue De Bonus
-  FaHorseHead      // Jeux Virtuels
+  FaHorseHead,     // Jeux Virtuels
+  FaHome,
+  FaSignInAlt
 } from "react-icons/fa";
 import AuthSystem from "./AuthSystem";
 import ProviderDashboard from "./ProviderDashboard";
@@ -188,7 +190,20 @@ function App() {
           </div>
         </div>
       )}
-      {/* يمكنك الإبقاء على الـ nav أو تعدله حسب الحاجة */}
+      <nav className="bottom-nav">
+        <div className="nav-btn">
+          <FaHome size={28} />
+          <span>Home</span>
+        </div>
+        <div className="nav-btn" onClick={() => setShowLogin(true)}>
+          <FaSignInAlt size={28} />
+          <span>Login</span>
+        </div>
+        <div className="nav-btn">
+          <FaFutbol size={28} />
+          <span>Paris Sportif</span>
+        </div>
+      </nav>
     </>
   );
 
@@ -259,6 +274,33 @@ function App() {
             )}
           </div>
         </div>
+      )}
+      <nav className="bottom-nav">
+        <div className="nav-btn">
+          <FaHome size={28} />
+          <span>Home</span>
+        </div>
+        <div className="nav-btn" onClick={() => setShowLogin(true)}>
+          <FaSignInAlt size={28} />
+          <span>Login</span>
+        </div>
+        <div className="nav-btn">
+          <FaFutbol size={28} />
+          <span>Paris Sportif</span>
+        </div>
+      </nav>
+      {showLogin && !auth && (
+        <AuthSystem onLogin={async (acc) => {
+          // دخول أدمن
+          if (acc.role === "admin") { setAuth(acc); setShowLogin(false); return; }
+          // دخول مزود
+          const provider = await getProviderByCredentials(acc.username, acc.password);
+          if (provider) { setAuth({ ...provider, role: "provider" }); setShowLogin(false); return; }
+          // دخول لاعب
+          const player = await getPlayerByCredentials(acc.username, acc.password);
+          if (player) { setAuth({ ...player, role: "player" }); setShowLogin(false); return; }
+          alert("بيانات الدخول غير صحيحة!");
+        }} />
       )}
     </div>
   );
