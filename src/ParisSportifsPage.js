@@ -1,9 +1,15 @@
 import React, { useEffect, useState, useContext } from "react";
-import { getSoccerLeagues, getEventsByLeague } from "./sportsApi";
+import {
+  getAllSports,
+  getLeaguesBySport,
+  getUpcomingEventsByLeague
+} from "./sportsApi";
 import { BetCartContext } from "./BetCartContext";
 import BetCartFab from "./BetCartFab";
 
 export default function ParisSportifsPage() {
+  const [sports, setSports] = useState([]);
+  const [selectedSport, setSelectedSport] = useState("Soccer");
   const [leagues, setLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [events, setEvents] = useState([]);
@@ -18,9 +24,28 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = ()=>{}, cart = [] } = betCart;
 
+  // جلب كل الرياضات المتوفرة (مرة واحدة عند التحميل)
   useEffect(() => {
     setError("");
-    getSoccerLeagues()
+    getAllSports()
+      .then(result => {
+        if (Array.isArray(result)) setSports(result);
+        else setSports([{ strSport: "Soccer" }]);
+      })
+      .catch(() => {
+        setError("خطأ في تحميل الرياضات، حاول لاحقاً");
+        setSports([{ strSport: "Soccer" }]);
+      });
+  }, []);
+
+  // جلب كل البطولات (leagues) للرياضة المختارة
+  useEffect(() => {
+    if (!selectedSport) return;
+    setError("");
+    setLeagues([]);
+    setSelectedLeague(null);
+    setEvents([]);
+    getLeaguesBySport(selectedSport)
       .then(result => {
         if (Array.isArray(result)) setLeagues(result);
         else setLeagues([]);
@@ -29,14 +54,15 @@ export default function ParisSportifsPage() {
         setError("خطأ في تحميل البطولات، حاول لاحقاً");
         setLeagues([]);
       });
-  }, []);
+  }, [selectedSport]);
 
+  // عند اختيار بطولة (league) جلب المباريات القادمة فقط
   const handleLeagueSelect = async (lg) => {
     setSelectedLeague(lg);
     setLoading(true);
     setError("");
     try {
-      const evs = await getEventsByLeague(lg.idLeague);
+      const evs = await getUpcomingEventsByLeague(lg.idLeague);
       if (Array.isArray(evs)) setEvents(evs);
       else setEvents([]);
     } catch {
@@ -53,6 +79,25 @@ export default function ParisSportifsPage() {
       </header>
       <div style={{padding:"12px 8px"}}>
         {error && <div style={{color:"red", marginBottom:12}}>{error}</div>}
+        {/* اختيار الرياضة */}
+        <div style={{marginBottom: 20}}>
+          <h3 style={{fontSize:"1.1em", marginBottom:8}}>اختر الرياضة</h3>
+          <div style={{display:"flex", flexWrap:"wrap", gap:10}}>
+            {sports.map(sport => (
+              <button
+                key={sport?.strSport}
+                style={{
+                  background: selectedSport === sport?.strSport ? "#2176c1" : "#eee",
+                  color: selectedSport === sport?.strSport ? "#fff" : "#222",
+                  borderRadius: 8, border: "none", padding: "7px 10px", fontWeight: "bold", cursor:"pointer"
+                }}
+                onClick={() => setSelectedSport(sport.strSport)}
+              >{sport?.strSport || "رياضة"}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* اختيار البطولة */}
         <div>
           <h3 style={{fontSize:"1.1em", marginBottom:8}}>اختر البطولة</h3>
           <div style={{display:"flex", flexWrap:"wrap", gap:10}}>
@@ -66,11 +111,12 @@ export default function ParisSportifsPage() {
                 }}
                 onClick={() => handleLeagueSelect(lg)}
                 disabled={!lg?.idLeague}
-              >{lg?.strLeague || "بطولة غير معروفة"}</button>
+              >{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</button>
             ))}
           </div>
         </div>
 
+        {/* عرض المباريات */}
         {selectedLeague && (
           <div style={{marginTop:22}}>
             <h3 style={{fontSize:"1.1em"}}>المباريات</h3>
