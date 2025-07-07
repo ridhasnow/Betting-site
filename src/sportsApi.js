@@ -21,9 +21,9 @@ export async function getAllSports() {
   return SUPPORTED_SPORTS;
 }
 
-// جلب البطولات لرياضة معينة
+// جلب البطولات لرياضة معينة => يجب استعمال v1 هنا!
 export async function getLeaguesBySport(sport = "Soccer") {
-  const res = await fetch(BASE_URL_V2 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
+  const res = await fetch(BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
   return data.countrys || [];
 }
