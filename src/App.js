@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import {
-  FaFutbol,        // Paris Sportifs
-  FaStopwatch,     // Paris En Ligne
-  FaDice,          // Jeux De Casino
-  FaPlayCircle,    // Casino En Direct
-  FaGift,          // Roue De Bonus
-  FaHorseHead,     // Jeux Virtuels
+  FaFutbol,
+  FaStopwatch,
+  FaDice,
+  FaPlayCircle,
+  FaGift,
+  FaHorseHead,
   FaHome,
   FaSignInAlt
 } from "react-icons/fa";
@@ -17,20 +17,18 @@ import PlayerUI from "./PlayerUI";
 import { getPlayerByCredentials } from "./playersService";
 import { getProviderByCredentials } from "./providersService";
 
-// استيراد مكونات الرهانات الرياضية الجديدة
+// Router فقط بدون useNavigate هنا!
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import { BetCartProvider } from "./BetCartContext";
 import ParisSportifsPage from "./ParisSportifsPage";
 import MyBetsPage from "./MyBetsPage";
 
-// صور السلايدر
 const sliderImages = [
   "/bet-affiche.png",
   "/bet-affiche2.png",
   "/bet-affiche3.png"
 ];
 
-// فقط 6 مربعات رئيسية
 const gridButtons = [
   {
     title: "Paris Sportifs",
@@ -65,14 +63,7 @@ const gridButtons = [
   }
 ];
 
-const ADMIN_ACCOUNT = {
-  username: "ridhasnow",
-  password: "azerty12345",
-  role: "admin",
-  balance: 999999999,
-};
-
-function PlayerMainContent({ auth, setAuth }) {
+function PlayerMainContent({ auth, setAuth, navigate }) {
   const [current, setCurrent] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => {
@@ -116,9 +107,6 @@ function PlayerMainContent({ auth, setAuth }) {
   const [selectedBet, setSelectedBet] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
 
-  // استخدام navigate من react-router-dom لربط الأزرار
-  const navigate = useNavigate();
-
   return (
     <>
       <PlayerUI user={auth} onLogout={() => setAuth(null)} />
@@ -137,7 +125,6 @@ function PlayerMainContent({ auth, setAuth }) {
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
               if (btn.key === "paris-sportifs") navigate("/paris-sportifs");
-              // يمكنك إضافة المزيد من الأحداث للأزرار الأخرى هنا
             }}
           >
             <div className="icon-holder">
@@ -201,12 +188,9 @@ function PlayerMainContent({ auth, setAuth }) {
       </nav>
       {showLogin && !auth && (
         <AuthSystem onLogin={async (acc) => {
-          // دخول أدمن
           if (acc.role === "admin") { setAuth(acc); setShowLogin(false); return; }
-          // دخول مزود
           const provider = await getProviderByCredentials(acc.username, acc.password);
           if (provider) { setAuth({ ...provider, role: "provider" }); setShowLogin(false); return; }
-          // دخول لاعب
           const player = await getPlayerByCredentials(acc.username, acc.password);
           if (player) { setAuth({ ...player, role: "player" }); setShowLogin(false); return; }
           alert("بيانات الدخول غير صحيحة!");
@@ -216,9 +200,8 @@ function PlayerMainContent({ auth, setAuth }) {
   );
 }
 
-function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatches, setLiveMatches, loading, setLoading, selectedBet, setSelectedBet, auth, setAuth }) {
-  // استخدام navigate من react-router-dom لربط الأزرار
-  const navigate = useNavigate();
+// نفس التعديل في GuestMainContent:
+function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatches, setLiveMatches, loading, setLoading, selectedBet, setSelectedBet, auth, setAuth, navigate }) {
   const [showLogin, setShowLogin] = useState(false);
 
   return (
@@ -242,7 +225,6 @@ function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatc
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
               if (btn.key === "paris-sportifs") navigate("/paris-sportifs");
-              // يمكنك إضافة المزيد من الأحداث للأزرار الأخرى هنا
             }}
           >
             <div className="icon-holder">
@@ -306,12 +288,9 @@ function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatc
       </nav>
       {showLogin && !auth && (
         <AuthSystem onLogin={async (acc) => {
-          // دخول أدمن
           if (acc.role === "admin") { setAuth(acc); setShowLogin(false); return; }
-          // دخول مزود
           const provider = await getProviderByCredentials(acc.username, acc.password);
           if (provider) { setAuth({ ...provider, role: "provider" }); setShowLogin(false); return; }
-          // دخول لاعب
           const player = await getPlayerByCredentials(acc.username, acc.password);
           if (player) { setAuth({ ...player, role: "player" }); setShowLogin(false); return; }
           alert("بيانات الدخول غير صحيحة!");
@@ -321,8 +300,33 @@ function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatc
   );
 }
 
+// هوك صغير لحقن navigate في العناصر الداخلية
+function MainRouterWrapper(props) {
+  const navigate = useNavigate();
+  const {
+    current, setCurrent, showLive, setShowLive, liveMatches, setLiveMatches,
+    loading, setLoading, selectedBet, setSelectedBet, auth, setAuth
+  } = props;
+  if (auth?.role === "player")
+    return <PlayerMainContent auth={auth} setAuth={setAuth} navigate={navigate} />;
+  return <GuestMainContent
+    current={current}
+    setCurrent={setCurrent}
+    showLive={showLive}
+    setShowLive={setShowLive}
+    liveMatches={liveMatches}
+    setLiveMatches={setLiveMatches}
+    loading={loading}
+    setLoading={setLoading}
+    selectedBet={selectedBet}
+    setSelectedBet={setSelectedBet}
+    auth={auth}
+    setAuth={setAuth}
+    navigate={navigate}
+  />;
+}
+
 function App() {
-  // Slider
   const [current, setCurrent] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => {
@@ -331,14 +335,12 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Live matches
   const [showLive, setShowLive] = useState(false);
   const [liveMatches, setLiveMatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [selectedBet, setSelectedBet] = useState(null);
 
-  // Auth system
   const [auth, setAuthRaw] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("auth")) || null;
@@ -350,38 +352,34 @@ function App() {
     else sessionStorage.removeItem("auth");
   };
 
-  // توجيه حسب الدور
   if (auth?.role === "provider") return <ProviderDashboard user={auth} onLogout={() => setAuth(null)} />;
   if (auth?.role === "admin") return <AdminDashboard user={auth} onLogout={() => setAuth(null)} />;
 
-  // هنا يبدأ نظام اللاعب/الزائر مع الرهانات الرياضية
   return (
     <BetCartProvider>
       <Router>
         <Routes>
-          {/* صفحة الرهانات الرياضية */}
           <Route path="/paris-sportifs" element={<ParisSportifsPage />} />
-          {/* صفحة رهاناتي */}
           <Route path="/my-bets" element={<MyBetsPage />} />
-          {/* الصفحة الرئيسية */}
-          <Route path="*" element={
-            auth?.role === "player"
-              ? <PlayerMainContent auth={auth} setAuth={setAuth} />
-              : <GuestMainContent
-                  current={current}
-                  setCurrent={setCurrent}
-                  showLive={showLive}
-                  setShowLive={setShowLive}
-                  liveMatches={liveMatches}
-                  setLiveMatches={setLiveMatches}
-                  loading={loading}
-                  setLoading={setLoading}
-                  selectedBet={selectedBet}
-                  setSelectedBet={setSelectedBet}
-                  auth={auth}
-                  setAuth={setAuth}
-                />
-          } />
+          <Route
+            path="*"
+            element={
+              <MainRouterWrapper
+                current={current}
+                setCurrent={setCurrent}
+                showLive={showLive}
+                setShowLive={setShowLive}
+                liveMatches={liveMatches}
+                setLiveMatches={setLiveMatches}
+                loading={loading}
+                setLoading={setLoading}
+                selectedBet={selectedBet}
+                setSelectedBet={setSelectedBet}
+                auth={auth}
+                setAuth={setAuth}
+              />
+            }
+          />
         </Routes>
       </Router>
     </BetCartProvider>
