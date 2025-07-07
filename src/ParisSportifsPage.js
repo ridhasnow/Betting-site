@@ -33,6 +33,7 @@ export default function ParisSportifsPage() {
   }, []);
 
   // جلب كل البطولات (leagues) للرياضة المختارة
+// ... باقي الكود نفسه حتى useEffect البطولات:
   useEffect(() => {
     if (!selectedSport) return;
     setError("");
@@ -41,6 +42,7 @@ export default function ParisSportifsPage() {
     setEvents([]);
     getLeaguesBySport(selectedSport)
       .then(result => {
+        console.log("Leagues result for", selectedSport, result); // أضف هذا السطر
         if (Array.isArray(result) && result.length > 0) {
           setLeagues(result);
           setError(""); // لا تظهر خطأ
@@ -49,7 +51,7 @@ export default function ParisSportifsPage() {
           setError(""); // رياضة بدون بطولات، لا تظهر خطأ
         }
       })
-      .catch(() => {
+      .catch((err) => {
         setError("خطأ في تحميل البطولات، حاول لاحقاً");
         setLeagues([]);
       });
