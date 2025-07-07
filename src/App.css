@@ -1,309 +1,269 @@
-body, #root, .main-wrapper {
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  background: #fff;
-  font-family: 'Segoe UI', Arial, sans-serif;
+import React, { useState, useEffect } from "react";
+import "./App.css";
+import {
+  FaFutbol,        // Paris Sportifs
+  FaStopwatch,     // Paris En Ligne
+  FaDice,          // Jeux De Casino
+  FaPlayCircle,    // Casino En Direct
+  FaGift,          // Roue De Bonus
+  FaHorseHead      // Jeux Virtuels
+} from "react-icons/fa";
+import AuthSystem from "./AuthSystem";
+import ProviderDashboard from "./ProviderDashboard";
+import AdminDashboard from "./AdminDashboard";
+import PlayerUI from "./PlayerUI";
+import { getPlayerByCredentials } from "./playersService";
+import { getProviderByCredentials } from "./providersService";
+
+// صور السلايدر
+const sliderImages = [
+  "/bet-affiche.png",
+  "/bet-affiche2.png",
+  "/bet-affiche3.png"
+];
+
+// بيانات المربعات (فقط 6 مربعات)
+const gridButtons = [
+  {
+    title: "Paris Sportifs",
+    icon: <FaFutbol size={50} color="#FFF" />,
+    key: "paris-sportifs"
+  },
+  {
+    title: "Paris En Ligne",
+    icon: <FaStopwatch size={50} color="#FFF" />,
+    live: true,
+    key: "paris-en-ligne"
+  },
+  {
+    title: "Jeux De Casino",
+    icon: <FaDice size={50} color="#FFF" />,
+    key: "jeux-de-casino"
+  },
+  {
+    title: "Casino En Direct",
+    icon: <FaPlayCircle size={50} color="#FFF" />,
+    key: "casino-en-direct"
+  },
+  {
+    title: "Roue De Bonus",
+    icon: <FaGift size={50} color="#FFF" />,
+    key: "roue-de-bonus"
+  },
+  {
+    title: "Jeux Virtuels",
+    icon: <FaHorseHead size={50} color="#FFF" />,
+    key: "jeux-virtuels"
+  }
+];
+
+const ADMIN_ACCOUNT = {
+  username: "ridhasnow",
+  password: "azerty12345",
+  role: "admin",
+  balance: 999999999,
+};
+
+function App() {
+  // Slider
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % sliderImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Live matches
+  const [showLive, setShowLive] = useState(false);
+  const [liveMatches, setLiveMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (showLive) {
+      setLoading(true);
+      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
+        headers: {
+          "X-Auth-Token": "c25adbeecce0469e8ff30485070581db",
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          const matches = (data.matches || []).slice(0, 10).map(ev => ({
+            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
+            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
+            odds: [
+              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
+              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
+              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+            ],
+          }));
+          setLiveMatches(matches);
+          setLoading(false);
+        });
+    }
+  }, [showLive]);
+
+  const [selectedBet, setSelectedBet] = useState(null);
+
+  // Auth system
+  const [auth, setAuthRaw] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("auth")) || null;
+    } catch { return null; }
+  });
+  const setAuth = (acc) => {
+    setAuthRaw(acc);
+    if (acc) sessionStorage.setItem("auth", JSON.stringify(acc));
+    else sessionStorage.removeItem("auth");
+  };
+  const [showLogin, setShowLogin] = useState(false);
+
+  // توجيه حسب الدور
+  if (auth?.role === "provider") return <ProviderDashboard user={auth} onLogout={()=>setAuth(null)} />;
+  if (auth?.role === "admin") return <AdminDashboard user={auth} onLogout={()=>setAuth(null)} />;
+  if (auth?.role === "player") return (
+    <>
+      <PlayerUI user={auth} onLogout={()=>setAuth(null)} />
+      <div className="slider-holder">
+        <img
+          src={sliderImages[current]}
+          alt="affiche"
+          className="slider-img"
+        />
+      </div>
+      <main className="grid-container grid-2"> {/* grid-2 بدل grid-3 */}
+        {gridButtons.map((btn, idx) => (
+          <div
+            className={`grid-item grid-blue`}
+            key={btn.key}
+            onClick={() => {
+              if (btn.key === "paris-en-ligne") setShowLive(true);
+              // أضف توجيه أو modal مخصص لكل زر إذا أحببت
+            }}
+          >
+            <div className="icon-holder">
+              {btn.icon}
+              {/* النقطة الحمراء في زاوية مربع Paris En Ligne */}
+              {btn.live && (
+                <span className="live-dot-corner" />
+              )}
+            </div>
+            <div className="title">{btn.title}</div>
+          </div>
+        ))}
+      </main>
+      {showLive && (
+        <div className="live-popup">
+          <div className="live-popup-content">
+            <h3>Live Matches</h3>
+            <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
+            {loading ? (
+              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+            ) : (
+              <div className="live-matches-list">
+                {liveMatches.map((match, i) => (
+                  <div className="live-match-row" key={i}>
+                    <div className="teams">{match.teams}</div>
+                    <div className="time">{match.time}</div>
+                    <div className="odds">
+                      {match.odds.map((odd, j) => (
+                        <button
+                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          key={j}
+                          onClick={() => setSelectedBet(`${i}-${j}`)}
+                        >
+                          {odd.label}
+                          <span>{odd.value}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {liveMatches.length === 0 && (
+                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* يمكنك إبقاء الـ nav كما هو أو تعدله حسب الحاجة */}
+    </>
+  );
+
+  // زائر ليس مسجلاً
+  return (
+    <div className="main-wrapper" style={{background:"#fff"}}>
+      <header className="header header-black">
+        <span className="header-title">Accueil</span>
+        <img src="/cazabet.png" alt="Cazabet Logo" className="header-logo" />
+      </header>
+      <div className="slider-holder">
+        <img
+          src={sliderImages[current]}
+          alt="affiche"
+          className="slider-img"
+        />
+      </div>
+      <main className="grid-container grid-2"> {/* grid-2 بدل grid-3 */}
+        {gridButtons.map((btn, idx) => (
+          <div
+            className={`grid-item grid-blue`}
+            key={btn.key}
+            onClick={() => {
+              if (btn.key === "paris-en-ligne") setShowLive(true);
+            }}
+          >
+            <div className="icon-holder">
+              {btn.icon}
+              {btn.live && (
+                <span className="live-dot-corner" />
+              )}
+            </div>
+            <div className="title">{btn.title}</div>
+          </div>
+        ))}
+      </main>
+      {showLive && (
+        <div className="live-popup">
+          <div className="live-popup-content">
+            <h3>Live Matches</h3>
+            <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
+            {loading ? (
+              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+            ) : (
+              <div className="live-matches-list">
+                {liveMatches.map((match, i) => (
+                  <div className="live-match-row" key={i}>
+                    <div className="teams">{match.teams}</div>
+                    <div className="time">{match.time}</div>
+                    <div className="odds">
+                      {match.odds.map((odd, j) => (
+                        <button
+                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          key={j}
+                          onClick={() => setSelectedBet(`${i}-${j}`)}
+                        >
+                          {odd.label}
+                          <span>{odd.value}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {liveMatches.length === 0 && (
+                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-/* Header */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #111;
-  color: #fff;
-  padding: 16px 18px 12px 18px;
-  font-size: 1.4rem;
-  font-weight: bold;
-  box-shadow: 0 2px 7px rgba(0,0,0,0.08);
-}
-.header-black {
-  background: #111;
-}
-.header-title {
-  flex: 1;
-  font-size: 1.3rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-  text-align: left;
-}
-.header-logo {
-  width: 52px;
-  height: 38px;
-  object-fit: contain;
-  margin-left: 18px;
-}
-
-/* Slider */
-.slider-holder {
-  width: 100%;
-  height: 120px;
-  margin-bottom: 18px;
-  background: #eee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.slider-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Grid */
-.grid-container {
-  display: grid;
-  gap: 18px;
-  padding: 20px 14px 92px 14px;
-}
-.grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.grid-item {
-  background: #2176c1;
-  border-radius: 13px;
-  box-shadow: 0 2px 13px rgba(0,0,0,0.07);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 18px 0 13px 0;
-  min-height: 100px;
-  color: #fff;
-  transition: transform 0.14s, background 0.18s;
-  cursor: pointer;
-}
-.grid-item:active {
-  transform: scale(0.97);
-  background: #155081;
-}
-.icon-holder {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.live-dot {
-  position: absolute;
-  top: 8px; /* زاوية 90 بالضبط */
-  right: 8px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 8px 8px, #ff4444 60%, #ff8888 100%);
-  box-shadow: 0 0 10px 3px #ff6666, 0 0 2px #fff;
-  animation: glow 1s infinite alternate;
-  z-index: 2;
-}
-@keyframes glow {
-  0% { box-shadow: 0 0 10px 3px #ff6666, 0 0 2px #fff; }
-  100% { box-shadow: 0 0 14px 7px #ff1111, 0 0 2px #fff; }
-}
-.grid-item .title {
-  font-size: 1.04rem;
-  font-weight: 600;
-  text-align: center;
-  margin-top: 6px;
-  color: #fff;
-}
-
-/* Popup Live Matches */
-.live-popup {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(25,35,55,0.18);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.live-popup-content {
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 40px 3px #1a5c9a11;
-  padding: 26px 20px 20px 20px;
-  min-width: 320px;
-  max-width: 400px;
-  width: 95vw;
-  position: relative;
-}
-.close-btn {
-  position: absolute;
-  top: 10px; right: 18px;
-  background: none;
-  border: none;
-  font-size: 2rem;
-  color: #888;
-  cursor: pointer;
-}
-.live-matches-list {
-  margin-top: 16px;
-}
-.live-match-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f3f8fd;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border-left: 3px solid #2176c1;
-  flex-wrap: wrap;
-}
-.teams { font-weight: 600; color: #2176c1; font-size: 1.04rem; flex: 1 1 100%; }
-.time { color: #1a5c9a; font-size: 0.99rem; font-weight: 500; margin-right: 12px; }
-.odds { display: flex; gap: 8px; flex-wrap: wrap; }
-.odd-btn {
-  background: #2176c1;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  padding: 5px 7px;
-  font-size: 0.98rem;
-  min-width: 42px;
-  font-weight: 600;
-  transition: background 0.2s;
-  margin-top: 4px;
-  margin-right: 2px;
-}
-.odd-btn.selected,
-.odd-btn:active {
-  background: #155081;
-}
-.odd-btn span {
-  display: block;
-  font-size: 0.87em;
-  font-weight: 400;
-}
-
-/* Bottom nav */
-.bottom-nav {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  height: 62px;
-  background: #232323;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 50;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-}
-
-.nav-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #fff;
-  font-size: 0.93rem;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
-.nav-btn span {
-  font-size: 0.92em;
-  margin-top: 2px;
-  font-weight: 400;
-}
-/* أزرار مزود/أدمن */
-.provider-btn {
-  display: block;
-  width: 97%;
-  margin: 7px auto;
-  background: #2176c1;
-  color: #fff;
-  border: none;
-  border-radius: 11px;
-  padding: 13px 0 11px 0;
-  font-size: 1.05em;
-  font-weight: bold;
-  letter-spacing: 1px;
-  transition: background .14s;
-  box-shadow: 0 1px 8px #2176c11a;
-  cursor: pointer;
-}
-.provider-btn:active {
-  background: #003c6e;
-}
-
-/* نافذة الدخول */
-.modal-bg {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(30,40,60,0.19);
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal-login {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 5px 30px 3px #1a5c9a13;
-  padding: 30px 22px 18px 22px;
-  min-width: 270px;
-  max-width: 340px;
-  width: 94vw;
-  position: relative;
-  text-align: center;
-}
-.modal-login h3, .modal-login h4 {
-  margin: 0 0 10px 0;
-  color: #2176c1;
-  font-weight: bold;
-}
-.modal-login input[type="text"],
-.modal-login input[type="password"] {
-  width: 95%;
-  padding: 9px 11px;
-  margin: 8px 0;
-  border-radius: 8px;
-  border: 1px solid #d7eaff;
-  background: #f7fbff;
-  font-size: 1.07em;
-  direction: ltr;
-  font-family: inherit;
-}
-.input-pass-wrap {
-  display: flex;
-  align-items: center;
-  width: 95%;
-  margin: 0 auto;
-}
-.input-pass-wrap input {
-  flex: 1;
-}
-.showpass-btn {
-  background: none;
-  border: none;
-  font-size: 1.32em;
-  cursor: pointer;
-  margin-left: -30px;
-  color: #888;
-}
-.login-btn {
-  width: 100%;
-  padding: 9px 0;
-  margin: 11px 0 0 0;
-  border-radius: 8px;
-  background: #2176c1;
-  color: #fff;
-  font-size: 1.07em;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  transition: background .15s;
-}
-.login-btn:active {
-  background: #003c6e;
-}
-.login-error {
-  color: #d90000;
-  background: #fff0f0;
-  border-radius: 8px;
-  margin: 8px auto;
-  font-size: 0.98em;
-  padding: 4px 0;
-  width: 96%;
-}
+export default App;
