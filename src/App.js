@@ -17,6 +17,12 @@ import PlayerUI from "./PlayerUI";
 import { getPlayerByCredentials } from "./playersService";
 import { getProviderByCredentials } from "./providersService";
 
+// استيراد مكونات الرهانات الرياضية الجديدة
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BetCartProvider } from "./BetCartContext";
+import ParisSportifsPage from "./ParisSportifsPage";
+import MyBetsPage from "./MyBetsPage";
+
 // صور السلايدر
 const sliderImages = [
   "/bet-affiche.png",
@@ -66,8 +72,7 @@ const ADMIN_ACCOUNT = {
   balance: 999999999,
 };
 
-function App() {
-  // Slider
+function PlayerMainContent({ auth, setAuth }) {
   const [current, setCurrent] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => {
@@ -109,26 +114,14 @@ function App() {
   }, [showLive]);
 
   const [selectedBet, setSelectedBet] = useState(null);
-
-  // Auth system
-  const [auth, setAuthRaw] = useState(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("auth")) || null;
-    } catch { return null; }
-  });
-  const setAuth = (acc) => {
-    setAuthRaw(acc);
-    if (acc) sessionStorage.setItem("auth", JSON.stringify(acc));
-    else sessionStorage.removeItem("auth");
-  };
   const [showLogin, setShowLogin] = useState(false);
 
-  // توجيه حسب الدور
-  if (auth?.role === "provider") return <ProviderDashboard user={auth} onLogout={()=>setAuth(null)} />;
-  if (auth?.role === "admin") return <AdminDashboard user={auth} onLogout={()=>setAuth(null)} />;
-  if (auth?.role === "player") return (
+  // استخدام navigate من react-router-dom لربط الأزرار
+  const navigate = useNavigate();
+
+  return (
     <>
-      <PlayerUI user={auth} onLogout={()=>setAuth(null)} />
+      <PlayerUI user={auth} onLogout={() => setAuth(null)} />
       <div className="slider-holder">
         <img
           src={sliderImages[current]}
@@ -143,6 +136,8 @@ function App() {
             key={btn.key}
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
+              if (btn.key === "paris-sportifs") navigate("/paris-sportifs");
+              // يمكنك إضافة المزيد من الأحداث للأزرار الأخرى هنا
             }}
           >
             <div className="icon-holder">
@@ -161,7 +156,7 @@ function App() {
             <h3>Live Matches</h3>
             <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
             {loading ? (
-              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+              <div style={{ textAlign: "center", color: "#2176c1", marginTop: 30 }}>Loading...</div>
             ) : (
               <div className="live-matches-list">
                 {liveMatches.map((match, i) => (
@@ -171,7 +166,7 @@ function App() {
                     <div className="odds">
                       {match.odds.map((odd, j) => (
                         <button
-                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          className={`odd-btn ${selectedBet === `${i}-${j}` ? "selected" : ""}`}
                           key={j}
                           onClick={() => setSelectedBet(`${i}-${j}`)}
                         >
@@ -183,7 +178,7 @@ function App() {
                   </div>
                 ))}
                 {liveMatches.length === 0 && (
-                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                  <div style={{ textAlign: "center", color: "#999", marginTop: 30 }}>No live matches found.</div>
                 )}
               </div>
             )}
@@ -191,7 +186,7 @@ function App() {
         </div>
       )}
       <nav className="bottom-nav">
-        <div className="nav-btn">
+        <div className="nav-btn" onClick={() => navigate("/")}>
           <FaHome size={28} />
           <span>Home</span>
         </div>
@@ -199,17 +194,35 @@ function App() {
           <FaSignInAlt size={28} />
           <span>Login</span>
         </div>
-        <div className="nav-btn">
+        <div className="nav-btn" onClick={() => navigate("/paris-sportifs")}>
           <FaFutbol size={28} />
           <span>Paris Sportif</span>
         </div>
       </nav>
+      {showLogin && !auth && (
+        <AuthSystem onLogin={async (acc) => {
+          // دخول أدمن
+          if (acc.role === "admin") { setAuth(acc); setShowLogin(false); return; }
+          // دخول مزود
+          const provider = await getProviderByCredentials(acc.username, acc.password);
+          if (provider) { setAuth({ ...provider, role: "provider" }); setShowLogin(false); return; }
+          // دخول لاعب
+          const player = await getPlayerByCredentials(acc.username, acc.password);
+          if (player) { setAuth({ ...player, role: "player" }); setShowLogin(false); return; }
+          alert("بيانات الدخول غير صحيحة!");
+        }} />
+      )}
     </>
   );
+}
 
-  // زائر ليس مسجلاً
+function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatches, setLiveMatches, loading, setLoading, selectedBet, setSelectedBet, auth, setAuth }) {
+  // استخدام navigate من react-router-dom لربط الأزرار
+  const navigate = useNavigate();
+  const [showLogin, setShowLogin] = useState(false);
+
   return (
-    <div className="main-wrapper" style={{background:"#fff"}}>
+    <div className="main-wrapper" style={{ background: "#fff" }}>
       <header className="header header-black">
         <span className="header-title">Accueil</span>
         <img src="/cazabet.png" alt="Cazabet Logo" className="header-logo" />
@@ -228,6 +241,8 @@ function App() {
             key={btn.key}
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
+              if (btn.key === "paris-sportifs") navigate("/paris-sportifs");
+              // يمكنك إضافة المزيد من الأحداث للأزرار الأخرى هنا
             }}
           >
             <div className="icon-holder">
@@ -246,7 +261,7 @@ function App() {
             <h3>Live Matches</h3>
             <button className="close-btn" onClick={() => setShowLive(false)}>×</button>
             {loading ? (
-              <div style={{textAlign: "center", color: "#2176c1", marginTop: 30}}>Loading...</div>
+              <div style={{ textAlign: "center", color: "#2176c1", marginTop: 30 }}>Loading...</div>
             ) : (
               <div className="live-matches-list">
                 {liveMatches.map((match, i) => (
@@ -256,7 +271,7 @@ function App() {
                     <div className="odds">
                       {match.odds.map((odd, j) => (
                         <button
-                          className={`odd-btn ${selectedBet===`${i}-${j}` ? "selected" : ""}`}
+                          className={`odd-btn ${selectedBet === `${i}-${j}` ? "selected" : ""}`}
                           key={j}
                           onClick={() => setSelectedBet(`${i}-${j}`)}
                         >
@@ -268,7 +283,7 @@ function App() {
                   </div>
                 ))}
                 {liveMatches.length === 0 && (
-                  <div style={{textAlign: "center", color: "#999", marginTop: 30}}>No live matches found.</div>
+                  <div style={{ textAlign: "center", color: "#999", marginTop: 30 }}>No live matches found.</div>
                 )}
               </div>
             )}
@@ -276,7 +291,7 @@ function App() {
         </div>
       )}
       <nav className="bottom-nav">
-        <div className="nav-btn">
+        <div className="nav-btn" onClick={() => navigate("/")}>
           <FaHome size={28} />
           <span>Home</span>
         </div>
@@ -284,7 +299,7 @@ function App() {
           <FaSignInAlt size={28} />
           <span>Login</span>
         </div>
-        <div className="nav-btn">
+        <div className="nav-btn" onClick={() => navigate("/paris-sportifs")}>
           <FaFutbol size={28} />
           <span>Paris Sportif</span>
         </div>
@@ -303,6 +318,73 @@ function App() {
         }} />
       )}
     </div>
+  );
+}
+
+function App() {
+  // Slider
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % sliderImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Live matches
+  const [showLive, setShowLive] = useState(false);
+  const [liveMatches, setLiveMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [selectedBet, setSelectedBet] = useState(null);
+
+  // Auth system
+  const [auth, setAuthRaw] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("auth")) || null;
+    } catch { return null; }
+  });
+  const setAuth = (acc) => {
+    setAuthRaw(acc);
+    if (acc) sessionStorage.setItem("auth", JSON.stringify(acc));
+    else sessionStorage.removeItem("auth");
+  };
+
+  // توجيه حسب الدور
+  if (auth?.role === "provider") return <ProviderDashboard user={auth} onLogout={() => setAuth(null)} />;
+  if (auth?.role === "admin") return <AdminDashboard user={auth} onLogout={() => setAuth(null)} />;
+
+  // هنا يبدأ نظام اللاعب/الزائر مع الرهانات الرياضية
+  return (
+    <BetCartProvider>
+      <Router>
+        <Routes>
+          {/* صفحة الرهانات الرياضية */}
+          <Route path="/paris-sportifs" element={<ParisSportifsPage />} />
+          {/* صفحة رهاناتي */}
+          <Route path="/my-bets" element={<MyBetsPage />} />
+          {/* الصفحة الرئيسية */}
+          <Route path="*" element={
+            auth?.role === "player"
+              ? <PlayerMainContent auth={auth} setAuth={setAuth} />
+              : <GuestMainContent
+                  current={current}
+                  setCurrent={setCurrent}
+                  showLive={showLive}
+                  setShowLive={setShowLive}
+                  liveMatches={liveMatches}
+                  setLiveMatches={setLiveMatches}
+                  loading={loading}
+                  setLoading={setLoading}
+                  selectedBet={selectedBet}
+                  setSelectedBet={setSelectedBet}
+                  auth={auth}
+                  setAuth={setAuth}
+                />
+          } />
+        </Routes>
+      </Router>
+    </BetCartProvider>
   );
 }
 
