@@ -8,11 +8,12 @@ import {
   FaDice,
   FaHorseHead,
   FaChartLine,
-  FaGamepad,
-  FaTrophy
+  FaTrophy,
+  FaGift,
+  FaPlayCircle
 } from "react-icons/fa";
-import { GiSlotMachine, GiSpinningWheel } from "react-icons/gi";
 import { SiAltiumdesigner } from "react-icons/si";
+// GiSlotMachine, GiSpinningWheel ==> NOT USED, to avoid import errors!
 import AuthSystem from "./AuthSystem";
 import ProviderDashboard from "./ProviderDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -27,7 +28,7 @@ const sliderImages = [
   "/bet-affiche3.png"
 ];
 
-// بيانات المربعات
+// بيانات المربعات (تمت إزالة GiSlotMachine واستبدالها بـ FaDice/أيقونات آمنة)
 const gridButtons = [
   {
     title: "Paris Sportifs",
@@ -47,12 +48,12 @@ const gridButtons = [
   },
   {
     title: "Casino En Direct",
-    icon: <FaDice size={56} color="#FFF" />,
+    icon: <FaPlayCircle size={56} color="#FFF" />,
     key: "casino-en-direct"
   },
   {
     title: "Jeux De Casino",
-    icon: <GiSlotMachine size={56} color="#FFF" />,
+    icon: <FaDice size={56} color="#FFF" />,
     key: "jeux-de-casino"
   },
   {
@@ -87,7 +88,7 @@ const gridButtons = [
   },
   {
     title: "Roue De Bonus",
-    icon: <GiSpinningWheel size={56} color="#FFF" />,
+    icon: <FaGift size={56} color="#FFF" />,
     key: "roue-de-bonus"
   }
 ];
