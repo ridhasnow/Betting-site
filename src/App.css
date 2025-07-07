@@ -1,4 +1,4 @@
-body, #root, .main-wrapper {
+نbody, #root, .main-wrapper {
   min-height: 100vh;
   margin: 0;
   padding: 0;
@@ -80,7 +80,6 @@ body, #root, .main-wrapper {
   transition: transform 0.14s, background 0.18s;
   cursor: pointer;
   position: relative;
-  /* لتقليل المساحات حول المربعات */
 }
 .grid-item:active {
   transform: scale(0.97);
@@ -96,10 +95,10 @@ body, #root, .main-wrapper {
 }
 .live-dot-corner {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 17px;
-  height: 17px;
+  top: 10px;
+  right: 10px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: radial-gradient(circle at 8px 8px, #ff4444 60%, #ff8888 100%);
   box-shadow: 0 0 10px 3px #ff6666, 0 0 2px #fff;
@@ -111,7 +110,7 @@ body, #root, .main-wrapper {
   100% { box-shadow: 0 0 14px 7px #ff1111, 0 0 2px #fff; }
 }
 .grid-item .title {
-  font-size: 1.14rem;
+  font-size: 1.12rem;
   font-weight: 600;
   text-align: center;
   margin-top: 10px;
