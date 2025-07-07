@@ -19,11 +19,14 @@ export default function PlayerUI({ user, onLogout }) {
           cursor: "pointer"
         }}
         onClick={() => setShow(s => !s)}
-      >{user.username}</button>
+      >
+        {user.username}
+      </button>
       <button
         onClick={onLogout}
         style={{
-          marginLeft: "auto", color: '#fff',
+          marginLeft: "auto",
+          color: '#fff',
           background: 'transparent',
           border: 'none',
           fontSize: "1.2em",
@@ -32,25 +35,30 @@ export default function PlayerUI({ user, onLogout }) {
         title="Logout"
       >⏻</button>
       {show && (
-        <div className="modal-bg" onClick={()=>setShow(false)}>
-          <div className="modal-login" style={{maxWidth:220}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-bg" onClick={() => setShow(false)}>
+          <div className="modal-login" style={{ maxWidth: 220 }} onClick={e => e.stopPropagation()}>
             <h4>رصيدك</h4>
-            <div style={{color:"#2176c1", fontWeight:"bold", fontSize:"1.3em", margin:"18px 0"}}>{user.balance ?? 0} TND</div>
-            <button className="login-btn" onClick={()=>setShow(false)}>إغلاق</button>
+            <div style={{
+              color: "#2176c1",
+              fontWeight: "bold",
+              fontSize: "1.3em",
+              margin: "18px 0"
+            }}>
+              {user.balance ?? 0} TND
+            </div>
+            <button
+              className="login-btn"
+              style={{ marginBottom: 8 }}
+              onClick={() => window.location = '/my-bets'}
+            >
+              my bet
+            </button>
+            <button className="login-btn" onClick={() => setShow(false)}>
+              إغلاق
+            </button>
           </div>
         </div>
       )}
     </header>
   );
 }
-// ... باقي الكود كما هو ...
-{show && (
-  <div className="modal-bg" onClick={()=>setShow(false)}>
-    <div className="modal-login" style={{maxWidth:220}} onClick={e=>e.stopPropagation()}>
-      <h4>رصيدك</h4>
-      <div style={{color:"#2176c1", fontWeight:"bold", fontSize:"1.3em", margin:"18px 0"}}>{user.balance ?? 0} TND</div>
-      <button className="login-btn" style={{marginBottom:8}} onClick={()=>window.location='/my-bets'}>my bet</button>
-      <button className="login-btn" onClick={()=>setShow(false)}>إغلاق</button>
-    </div>
-  </div>
-)}
