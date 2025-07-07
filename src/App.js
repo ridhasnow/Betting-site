@@ -23,6 +23,9 @@ import { BetCartProvider } from "./BetCartContext";
 import ParisSportifsPage from "./ParisSportifsPage";
 import MyBetsPage from "./MyBetsPage";
 
+// استدعاء الدوال الجديدة للنتائج المباشرة من sportsApi.js
+import { getLiveScoresBySport } from "./sportsApi";
+
 const sliderImages = [
   "/bet-affiche.png",
   "/bet-affiche2.png",
@@ -77,30 +80,30 @@ function PlayerMainContent({ auth, setAuth, navigate }) {
   const [liveMatches, setLiveMatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // تم التعديل: جلب النتائج المباشرة من sportsApi.js (api v2)
   useEffect(() => {
     if (showLive) {
       setLoading(true);
-      fetch("https://api.football-data.org/v4/matches?dateFrom=today&dateTo=today", {
-        headers: {
-          "X-Auth-Token": "c25adbeecce0469e8ff30485070581db",
-        },
-      })
-        .then(res => res.json())
-        .then(data => {
-          const matches = (data.matches || []).slice(0, 10).map(ev => ({
-            teams: `${ev.homeTeam.name} vs ${ev.awayTeam.name}`,
-            time: ev.utcDate ? ev.utcDate.slice(11, 16) : "",
-            odds: [
-              { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
-              { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
-              { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
-              { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
-              { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
-            ],
-          }));
-          setLiveMatches(matches);
-          setLoading(false);
-        });
+      // يمكنك تغيير sport هنا حسب الحاجة (مثلاً "Soccer", "Basketball", إلخ)
+      getLiveScoresBySport("Soccer").then(events => {
+        // تحويل بيانات الـ API إلى نفس شكل matches القديم
+        const matches = (events || []).slice(0, 10).map(ev => ({
+          teams: `${ev.strHomeTeam} vs ${ev.strAwayTeam}`,
+          time: ev.strTimestamp ? new Date(ev.strTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+          odds: [
+            { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
+            { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
+            { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
+            { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+            { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+          ],
+        }));
+        setLiveMatches(matches);
+        setLoading(false);
+      }).catch(() => {
+        setLiveMatches([]);
+        setLoading(false);
+      });
     }
   }, [showLive]);
 
@@ -203,6 +206,31 @@ function PlayerMainContent({ auth, setAuth, navigate }) {
 // نفس التعديل في GuestMainContent:
 function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatches, setLiveMatches, loading, setLoading, selectedBet, setSelectedBet, auth, setAuth, navigate }) {
   const [showLogin, setShowLogin] = useState(false);
+
+  // تم التعديل: جلب النتائج المباشرة من sportsApi.js (api v2)
+  useEffect(() => {
+    if (showLive) {
+      setLoading(true);
+      getLiveScoresBySport("Soccer").then(events => {
+        const matches = (events || []).slice(0, 10).map(ev => ({
+          teams: `${ev.strHomeTeam} vs ${ev.strAwayTeam}`,
+          time: ev.strTimestamp ? new Date(ev.strTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+          odds: [
+            { label: "1", value: (Math.random() * 2 + 1).toFixed(2) },
+            { label: "X", value: (Math.random() * 2 + 2).toFixed(2) },
+            { label: "2", value: (Math.random() * 2 + 1).toFixed(2) },
+            { label: "Over 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+            { label: "Under 0.5", value: (Math.random() * 1.5 + 1.1).toFixed(2) },
+          ],
+        }));
+        setLiveMatches(matches);
+        setLoading(false);
+      }).catch(() => {
+        setLiveMatches([]);
+        setLoading(false);
+      });
+    }
+  }, [showLive, setLiveMatches, setLoading]);
 
   return (
     <div className="main-wrapper" style={{ background: "#fff" }}>
