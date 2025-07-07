@@ -25,7 +25,7 @@ export async function getLeaguesBySport(sport = "Soccer") {
   const res = await fetch(url);
   const data = await res.json();
   console.log("getLeaguesBySport", sport, url, data); // هام لمراقبة النتيجة الفعلية
-  return data.countrys || data.leagues || [];
+  return data.countries || data.leagues || [];
 }
 
 // جلب المباريات القادمة لبطولة معينة
