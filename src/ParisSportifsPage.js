@@ -25,16 +25,7 @@ export default function ParisSportifsPage() {
   const { addToCart = ()=>{}, cart = [] } = betCart;
 
   // جلب فقط الرياضات المدعومة (من sportsApi.js)
-  useEffect(() => {
-    setError("");
-    getAllSports().then(result => {
-      setSports(result);
-    });
-  }, []);
-
-  // جلب كل البطولات (leagues) للرياضة المختارة
-// ... باقي الكود نفسه حتى useEffect البطولات:
-  useEffect(() => {
+    useEffect(() => {
     if (!selectedSport) return;
     setError("");
     setLeagues([]);
@@ -42,7 +33,7 @@ export default function ParisSportifsPage() {
     setEvents([]);
     getLeaguesBySport(selectedSport)
       .then(result => {
-        console.log("Leagues result for", selectedSport, result); // أضف هذا السطر
+        console.log("Leagues for", selectedSport, result); // جديد
         if (Array.isArray(result) && result.length > 0) {
           setLeagues(result);
           setError(""); // لا تظهر خطأ
