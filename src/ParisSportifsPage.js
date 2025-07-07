@@ -29,7 +29,8 @@ export default function ParisSportifsPage() {
     setError("");
     getAllSports()
       .then(result => {
-        if (Array.isArray(result)) setSports(result);
+        // حماية إضافية إذا النتيجة فارغة
+        if (Array.isArray(result) && result.length > 0) setSports(result);
         else setSports([{ strSport: "Soccer" }]);
       })
       .catch(() => {
@@ -47,7 +48,7 @@ export default function ParisSportifsPage() {
     setEvents([]);
     getLeaguesBySport(selectedSport)
       .then(result => {
-        if (Array.isArray(result)) setLeagues(result);
+        if (Array.isArray(result) && result.length > 0) setLeagues(result);
         else setLeagues([]);
       })
       .catch(() => {
