@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import {
-  FaHome,
-  FaSignInAlt,
-  FaFutbol,
-  FaStopwatch,
-  FaDice,
-  FaHorseHead,
-  FaChartLine,
-  FaTrophy,
-  FaGift,
-  FaPlayCircle
+  FaFutbol,        // Paris Sportifs
+  FaStopwatch,     // Paris En Ligne
+  FaDice,          // Jeux De Casino
+  FaPlayCircle,    // Casino En Direct
+  FaGift,          // Roue De Bonus
+  FaHorseHead      // Jeux Virtuels
 } from "react-icons/fa";
-import { SiAltiumdesigner } from "react-icons/si";
-// GiSlotMachine, GiSpinningWheel ==> NOT USED, to avoid import errors!
 import AuthSystem from "./AuthSystem";
 import ProviderDashboard from "./ProviderDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -28,68 +22,38 @@ const sliderImages = [
   "/bet-affiche3.png"
 ];
 
-// بيانات المربعات (تمت إزالة GiSlotMachine واستبدالها بـ FaDice/أيقونات آمنة)
+// فقط 6 مربعات رئيسية
 const gridButtons = [
   {
     title: "Paris Sportifs",
-    icon: <FaChartLine size={56} color="#FFF" />,
+    icon: <FaFutbol size={50} color="#FFF" />,
     key: "paris-sportifs"
   },
   {
     title: "Paris En Ligne",
-    icon: <FaStopwatch size={56} color="#FFF" />,
+    icon: <FaStopwatch size={50} color="#FFF" />,
     live: true,
     key: "paris-en-ligne"
   },
   {
-    title: "Altenar",
-    icon: <SiAltiumdesigner size={56} color="#FFF" />,
-    key: "altenar"
-  },
-  {
-    title: "Casino En Direct",
-    icon: <FaPlayCircle size={56} color="#FFF" />,
-    key: "casino-en-direct"
-  },
-  {
     title: "Jeux De Casino",
-    icon: <FaDice size={56} color="#FFF" />,
+    icon: <FaDice size={50} color="#FFF" />,
     key: "jeux-de-casino"
   },
   {
-    title: "Jeux Virtuels",
-    icon: <FaHorseHead size={56} color="#FFF" />,
-    key: "jeux-virtuels"
-  },
-  {
-    title: "Zeppelin",
-    icon: <img src="/zeppelin-logo.png" alt="Zeppelin" style={{width:56, height:56, objectFit:"contain"}} />,
-    key: "zeppelin"
-  },
-  {
-    title: "Dino",
-    icon: <img src="/dino-logo.png" alt="Dino" style={{width:56, height:56, objectFit:"contain"}} />,
-    key: "dino"
-  },
-  {
-    title: "Aviator",
-    icon: <img src="/aviator-logo.png" alt="Aviator" style={{width:56, height:56, objectFit:"contain"}} />,
-    key: "aviator"
-  },
-  {
-    title: "Smartsoft",
-    icon: <img src="/jetx-logo.png" alt="Smartsoft" style={{width:56, height:56, objectFit:"contain"}} />,
-    key: "smartsoft"
-  },
-  {
-    title: "Résultats",
-    icon: <FaTrophy size={56} color="#FFF" />,
-    key: "resultats"
+    title: "Casino En Direct",
+    icon: <FaPlayCircle size={50} color="#FFF" />,
+    key: "casino-en-direct"
   },
   {
     title: "Roue De Bonus",
-    icon: <FaGift size={56} color="#FFF" />,
+    icon: <FaGift size={50} color="#FFF" />,
     key: "roue-de-bonus"
+  },
+  {
+    title: "Jeux Virtuels",
+    icon: <FaHorseHead size={50} color="#FFF" />,
+    key: "jeux-virtuels"
   }
 ];
 
@@ -163,7 +127,6 @@ function App() {
   if (auth?.role === "player") return (
     <>
       <PlayerUI user={auth} onLogout={()=>setAuth(null)} />
-      {/* الصفحة الرئيسية كما هي */}
       <div className="slider-holder">
         <img
           src={sliderImages[current]}
@@ -171,19 +134,17 @@ function App() {
           className="slider-img"
         />
       </div>
-      <main className="grid-container grid-3">
+      <main className="grid-container grid-2">
         {gridButtons.map((btn, idx) => (
           <div
             className={`grid-item grid-blue`}
             key={btn.key}
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
-              // يمكن إضافة onClick خاصة لكل زر لاحقاً
             }}
           >
             <div className="icon-holder">
               {btn.icon}
-              {/* النقطة الحمراء في زاوية مربع Paris En Ligne */}
               {btn.live && (
                 <span className="live-dot-corner" />
               )}
@@ -227,20 +188,7 @@ function App() {
           </div>
         </div>
       )}
-      <nav className="bottom-nav">
-        <div className="nav-btn">
-          <FaHome size={28} />
-          <span>Home</span>
-        </div>
-        <div className="nav-btn" onClick={() => setShowLogin(true)}>
-          <FaSignInAlt size={28} />
-          <span>Login</span>
-        </div>
-        <div className="nav-btn">
-          <FaFutbol size={28} />
-          <span>Paris Sportif</span>
-        </div>
-      </nav>
+      {/* يمكنك الإبقاء على الـ nav أو تعدله حسب الحاجة */}
     </>
   );
 
@@ -258,7 +206,7 @@ function App() {
           className="slider-img"
         />
       </div>
-      <main className="grid-container grid-3">
+      <main className="grid-container grid-2">
         {gridButtons.map((btn, idx) => (
           <div
             className={`grid-item grid-blue`}
@@ -311,33 +259,6 @@ function App() {
             )}
           </div>
         </div>
-      )}
-      <nav className="bottom-nav">
-        <div className="nav-btn">
-          <FaHome size={28} />
-          <span>Home</span>
-        </div>
-        <div className="nav-btn" onClick={() => setShowLogin(true)}>
-          <FaSignInAlt size={28} />
-          <span>Login</span>
-        </div>
-        <div className="nav-btn">
-          <FaFutbol size={28} />
-          <span>Paris Sportif</span>
-        </div>
-      </nav>
-      {showLogin && !auth && (
-        <AuthSystem onLogin={async (acc) => {
-          // دخول أدمن
-          if (acc.role === "admin") { setAuth(acc); setShowLogin(false); return; }
-          // دخول مزود
-          const provider = await getProviderByCredentials(acc.username, acc.password);
-          if (provider) { setAuth({ ...provider, role: "provider" }); setShowLogin(false); return; }
-          // دخول لاعب
-          const player = await getPlayerByCredentials(acc.username, acc.password);
-          if (player) { setAuth({ ...player, role: "player" }); setShowLogin(false); return; }
-          alert("بيانات الدخول غير صحيحة!");
-        }} />
       )}
     </div>
   );
