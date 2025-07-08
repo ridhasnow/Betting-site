@@ -1,13 +1,13 @@
+// قائمة الرياضات المدعومة (متوافقة مع الواجهة)
 export const SUPPORTED_SPORTS = [
   { strSport: "Soccer" },
   { strSport: "Basketball" },
   { strSport: "Tennis" },
-  { strSport: "Volleyball" },
+  { strSport: "Handball" },
   { strSport: "Rugby" },
-  { strSport: "Cricket" },
-  { strSport: "Baseball" },
   { strSport: "Ice Hockey" },
-  { strSport: "Handball" }
+  { strSport: "Volleyball" },
+  { strSport: "Table Tennis" }
 ];
 
 const API_KEY = "807217";
@@ -24,19 +24,36 @@ export async function getLeaguesBySport(sport = "Soccer") {
   const url = BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport);
   const res = await fetch(url);
   const data = await res.json();
-  console.log("getLeaguesBySport", sport, url, data); // هام لمراقبة النتيجة الفعلية
-  return data.countries || data.leagues || [];
+  // البطولات أحيانا في data.countries أو data.leagues حسب نوع الاستجابة
+  const result = data.countries || data.leagues || [];
+  // تصفية النتائج للتأكد من وجود idLeague وstrLeague
+  return result
+    .filter(lg => lg.idLeague && lg.strLeague)
+    .map(lg => ({
+      ...lg,
+      strCountry: lg.strCountry || "Unknown",
+      strLeagueAlternate: lg.strLeagueAlternate || "",
+    }));
 }
 
-// جلب المباريات القادمة لبطولة معينة
+// جلب المباريات القادمة لبطولة معينة (كل الأسبوع)
 export async function getUpcomingEventsByLeague(idLeague) {
   const res = await fetch(BASE_URL_V2 + "eventsnextleague.php?id=" + idLeague);
   const data = await res.json();
   return data.events || [];
 }
 
-// جلب نتائج مباشرة حسب الرياضة
-export async function getLiveScoresBySport(sport = "soccer") {
+// جلب مباريات بطولة ليوم معيّن
+export async function getEventsByLeagueAndDate(idLeague, dateStr) {
+  // نجلب كل أحداث الأسبوع ثم نفلتر حسب التاريخ
+  const all = await getUpcomingEventsByLeague(idLeague);
+  if (!dateStr) return all;
+  // فلترة الأحداث حسب التاريخ بالضبط
+  return all.filter(event => event.dateEvent === dateStr);
+}
+
+// جلب نتائج مباشرة حسب الرياضة (اختياري)
+export async function getLiveScoresBySport(sport = "Soccer") {
   const res = await fetch(BASE_URL_V2 + "livescore.php?s=" + encodeURIComponent(sport));
   const data = await res.json();
   return data.events || [];
