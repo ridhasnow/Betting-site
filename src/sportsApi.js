@@ -178,3 +178,19 @@ export async function getLiveOddsBets() {
     return [];
   }
 }
+// جلب النتائج المباشرة لكرة القدم فقط
+export async function getLiveScoresBySport(sport = "Soccer") {
+  if (sport !== "Soccer") return [];
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?live=all`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    return (data.response || []);
+  } catch {
+    return [];
+  }
+}
