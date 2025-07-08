@@ -19,21 +19,15 @@ export async function getAllSports() {
   return SUPPORTED_SPORTS;
 }
 
-// جلب البطولات لرياضة معينة
+// جلب كل البطولات (الاحترافية) لرياضة معينة من all_leagues.php
 export async function getLeaguesBySport(sport = "Soccer") {
   try {
-    const url = BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport);
+    const url = BASE_URL_V1 + "all_leagues.php";
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
-    const result = data.countries || data.leagues || [];
-    return result
-      .filter(lg => lg.idLeague && lg.strLeague)
-      .map(lg => ({
-        ...lg,
-        strCountry: lg.strCountry || "Unknown",
-        strLeagueAlternate: lg.strLeagueAlternate || "",
-      }));
+    // فلترة البطولات حسب الرياضة
+    return (data.leagues || []).filter(lg => lg.strSport === sport && lg.idLeague && lg.strLeague);
   } catch (e) {
     return [];
   }
