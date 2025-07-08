@@ -61,7 +61,6 @@ function Flag({ country }) {
 export default function ParisSportifsPage() {
   const [selectedSport, setSelectedSport] = useState(SPORTS[0].key);
   const [leagues, setLeagues] = useState([]);
-  const [filteredLeagues, setFilteredLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [events, setEvents] = useState([]);
   const [loadingLeagues, setLoadingLeagues] = useState(false);
@@ -79,40 +78,41 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = () => {}, cart = [] } = betCart;
 
-  // جلب البطولات مع فلترة البطولات التي لديها مباريات فعلاً في اليوم المختار
-  
-useEffect(() => {
-  let ignore = false;
-  async function fetchLeagues() {
-    setLoadingLeagues(true);
-    setError("");
-    setLeagues([]);
-    setSelectedLeague(null);
-    setEvents([]);
-    try {
-      const allLeagues = await getLeaguesBySport(selectedSport);
-      if (!ignore) setLeagues(allLeagues);
-    } catch {
-      setError("خطأ في تحميل البطولات، حاول لاحقاً");
+  // جلب البطولات للرياضة المختارة فقط
+  useEffect(() => {
+    let ignore = false;
+    async function fetchLeagues() {
+      setLoadingLeagues(true);
+      setError("");
+      setLeagues([]);
+      setSelectedLeague(null);
+      setEvents([]);
+      try {
+        const allLeagues = await getLeaguesBySport(selectedSport);
+        if (!ignore) setLeagues(allLeagues);
+      } catch {
+        setError("خطأ في تحميل البطولات، حاول لاحقاً");
+      }
+      setLoadingLeagues(false);
     }
-    setLoadingLeagues(false);
-  }
-  fetchLeagues();
-  return () => { ignore = true; };
-  // eslint-disable-next-line
-}, [selectedSport]);
+    fetchLeagues();
+    return () => { ignore = true; };
+    // eslint-disable-next-line
+  }, [selectedSport]);
 
-
-  // عند اختيار بطولة، عرض مباريات هذا اليوم فقط
-  const handleLeagueSelect = (lg) => {
+  // عند اختيار بطولة، جلب كل المباريات القادمة ثم فلترها حسب اليوم المختار
+  const handleLeagueSelect = async (lg) => {
     setSelectedLeague(lg);
     setLoadingEvents(true);
     setError("");
-    // جلب مباريات اليوم المختار من الأحداث المخزنة محليًا
-    const matchesToday = (lg.eventsThisWeek || []).filter(
-      ev => ev.dateEvent === selectedDay
-    );
-    setEvents(matchesToday);
+    try {
+      const allEvents = await getUpcomingEventsByLeague(lg.idLeague);
+      const matchesToday = (allEvents || []).filter(ev => ev.dateEvent === selectedDay);
+      setEvents(matchesToday);
+    } catch {
+      setEvents([]);
+      setError("خطأ في تحميل المباريات.");
+    }
     setLoadingEvents(false);
   };
 
@@ -208,7 +208,7 @@ useEffect(() => {
               gap: 7,
               marginBottom: 10
             }}>
-              {filteredLeagues.map(lg => (
+              {leagues.map(lg => (
                 <button
                   key={lg?.idLeague || Math.random()}
                   style={{
@@ -233,9 +233,9 @@ useEffect(() => {
                   <span>{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</span>
                 </button>
               ))}
-              {!error && filteredLeagues.length === 0 && (
+              {!error && leagues.length === 0 && (
                 <div style={{ color: "#888", margin: "12px 0" }}>
-                  لا توجد بطولات متوفرة لهذه الرياضة في هذا اليوم
+                  لا توجد بطولات متوفرة لهذه الرياضة
                 </div>
               )}
             </div>
