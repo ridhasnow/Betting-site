@@ -2,6 +2,11 @@ import React, { useEffect, useState, useContext } from "react";
 import { BetCartContext } from "./BetCartContext";
 import BetCartFab from "./BetCartFab";
 
+// ----------- RapidAPI Config -------------
+const RAPIDAPI_KEY = "5915cc956amsh7c4b63e2d2d2e8bp1ee65bjsnb56f28ec67fd";
+const RAPIDAPI_HOST = "api-football-v1.p.rapidapi.com";
+const BASE_URL = "https://api-football-v1.p.rapidapi.com/v3";
+
 // قائمة الرياضات المعتمدة (ثابتة)
 const SPORTS = [
   { key: "Soccer", label: "Football", icon: "⚽" },
@@ -13,79 +18,6 @@ const SPORTS = [
   { key: "Volleyball", label: "Volleyball", icon: "🏐" },
   { key: "Table Tennis", label: "Tennis Table", icon: "🏓" }
 ];
-
-// بطولات وهمية لكل رياضة (تجريبية)
-const DUMMY_LEAGUES = {
-  Soccer: [
-    { idLeague: "1", strLeague: "الدوري الإنجليزي", strCountry: "England" },
-    { idLeague: "2", strLeague: "الدوري الإسباني", strCountry: "Spain" },
-    { idLeague: "3", strLeague: "دوري أبطال أوروبا", strCountry: "Europe" }
-  ],
-  Basketball: [
-    { idLeague: "4", strLeague: "NBA", strCountry: "USA" },
-    { idLeague: "5", strLeague: "EuroLeague", strCountry: "Europe" }
-  ],
-  Tennis: [
-    { idLeague: "6", strLeague: "Wimbledon", strCountry: "UK" },
-    { idLeague: "7", strLeague: "Roland Garros", strCountry: "France" }
-  ],
-  Handball: [
-    { idLeague: "8", strLeague: "LNH", strCountry: "France" }
-  ],
-  Rugby: [
-    { idLeague: "9", strLeague: "Top 14", strCountry: "France" }
-  ],
-  "Ice Hockey": [
-    { idLeague: "10", strLeague: "NHL", strCountry: "USA" }
-  ],
-  Volleyball: [
-    { idLeague: "11", strLeague: "Superlega", strCountry: "Italy" }
-  ],
-  "Table Tennis": [
-    { idLeague: "12", strLeague: "World Table Tennis", strCountry: "World" }
-  ]
-};
-
-// مباريات وهمية لكل بطولة (تجريبية)
-const DUMMY_EVENTS = {
-  "1": [
-    { idEvent: "100", strHomeTeam: "مانشستر سيتي", strAwayTeam: "ليفربول", dateEvent: todayStr(), strTime: "20:00" },
-    { idEvent: "101", strHomeTeam: "تشيلسي", strAwayTeam: "آرسنال", dateEvent: addDaysStr(1), strTime: "21:30" }
-  ],
-  "2": [
-    { idEvent: "110", strHomeTeam: "ريال مدريد", strAwayTeam: "برشلونة", dateEvent: todayStr(), strTime: "22:00" }
-  ],
-  "3": [
-    { idEvent: "120", strHomeTeam: "بايرن ميونيخ", strAwayTeam: "باريس سان جيرمان", dateEvent: addDaysStr(2), strTime: "19:00" }
-  ],
-  "4": [
-    { idEvent: "130", strHomeTeam: "Lakers", strAwayTeam: "Celtics", dateEvent: todayStr(), strTime: "19:00" }
-  ],
-  "5": [
-    { idEvent: "140", strHomeTeam: "Fenerbahce", strAwayTeam: "Real Madrid", dateEvent: addDaysStr(3), strTime: "18:00" }
-  ],
-  "6": [
-    { idEvent: "150", strHomeTeam: "نوفاك جوكوفيتش", strAwayTeam: "كاسبر رود", dateEvent: todayStr(), strTime: "15:00" }
-  ],
-  "7": [
-    { idEvent: "151", strHomeTeam: "نادال", strAwayTeam: "مدفيديف", dateEvent: addDaysStr(1), strTime: "16:00" }
-  ],
-  "8": [
-    { idEvent: "160", strHomeTeam: "باريس", strAwayTeam: "مونبلييه", dateEvent: addDaysStr(2), strTime: "17:00" }
-  ],
-  "9": [
-    { idEvent: "170", strHomeTeam: "كليرمون", strAwayTeam: "تولوز", dateEvent: todayStr(), strTime: "20:00" }
-  ],
-  "10": [
-    { idEvent: "180", strHomeTeam: "Rangers", strAwayTeam: "Bruins", dateEvent: todayStr(), strTime: "02:00" }
-  ],
-  "11": [
-    { idEvent: "190", strHomeTeam: "Civitanova", strAwayTeam: "Modena", dateEvent: addDaysStr(1), strTime: "21:00" }
-  ],
-  "12": [
-    { idEvent: "200", strHomeTeam: "Ma Long", strAwayTeam: "Fan Zhendong", dateEvent: todayStr(), strTime: "13:00" }
-  ]
-};
 
 // أدوات الوقت
 function todayStr() {
@@ -134,16 +66,136 @@ function Flag({ country }) {
   );
 }
 
+// ---------- API Calls ---------------
+// جلب البطولات حسب الرياضة (مع فلترة حسب الرياضة)
+async function fetchLeaguesBySport(sportKey) {
+  try {
+    const res = await fetch(`${BASE_URL}/leagues`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    if (!data.response) return [];
+    if (sportKey === "Soccer") {
+      // البطولات النشيطة فقط ونختار المواسم الحالية
+      return data.response
+        .filter(lg => lg.sport === "Soccer" && lg.league?.name && lg.seasons.some(season => season.current))
+        .map(lg => ({
+          idLeague: String(lg.league.id),
+          strLeague: lg.league.name,
+          strCountry: lg.country.name,
+          logo: lg.league.logo
+        }));
+    } else {
+      // الباقي لا يدعمها API-Football، أعد قائمة فارغة
+      return [];
+    }
+  } catch (err) {
+    return [];
+  }
+}
+
+// جلب مباريات اليوم لبطولة معينة
+async function fetchEventsForLeagueAndDay(leagueId, dayStr) {
+  try {
+    const res = await fetch(`${BASE_URL}/fixtures?league=${leagueId}&date=${dayStr}`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    if (!data.response) return [];
+    // فلترة: فقط المباريات التي لم تبدأ بعد
+    return data.response
+      .filter(ev => ev.fixture.status.short === "NS")
+      .map(ev => ({
+        idEvent: String(ev.fixture.id),
+        strHomeTeam: ev.teams.home.name,
+        strAwayTeam: ev.teams.away.name,
+        dateEvent: ev.fixture.date.slice(0, 10),
+        strTime: ev.fixture.date.slice(11, 16),
+        leagueLogo: ev.league.logo,
+        fixtureId: ev.fixture.id
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// جلب كوتات 1X2 (سوق رئيسي) لمباراة واحدة
+async function fetchOdds1X2(fixtureId) {
+  try {
+    const res = await fetch(`${BASE_URL}/odds?fixture=${fixtureId}&bet=1`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    // odds.response = [{ league, fixture, update, bookmakers:[{id,name,bets:[{id,name,values:[{value,odd}]}]}]}]
+    if (!data.response || !data.response.length) return null;
+    // نبحث عن أول Bookmaker فيه سوق 1X2
+    for (const bookmaker of data.response[0].bookmakers || []) {
+      const bet = bookmaker.bets && bookmaker.bets.find(b => b.id === 1);
+      if (bet && bet.values) {
+        // يكون values = [{value: "Home", odd: "2.01"}, {value:"Draw", odd:"3.2"}, {value:"Away", odd:"2.79"}]
+        const odds = {};
+        bet.values.forEach(val => {
+          if (val.value === "Home") odds["1"] = val.odd;
+          if (val.value === "Draw") odds["X"] = val.odd;
+          if (val.value === "Away") odds["2"] = val.odd;
+        });
+        return odds;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// جلب كل الأسواق (كل الرهانات) لمباراة واحدة (Bookmaker=1 مثلاً)
+async function fetchAllOddsForFixture(fixtureId, bookmakerId = 1) {
+  try {
+    const res = await fetch(`${BASE_URL}/odds?fixture=${fixtureId}&bookmaker=${bookmakerId}`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    if (!data.response || !data.response.length) return [];
+    // جلب كل الرهانات (كل الأسواق)
+    const bookmaker = data.response[0].bookmakers.find(bm => bm.id === bookmakerId) || data.response[0].bookmakers[0];
+    if (!bookmaker || !bookmaker.bets) return [];
+    // كل bet = { id, name, values: [ { value, odd } ] }
+    return bookmaker.bets.map(bet => ({
+      id: bet.id,
+      name: bet.name,
+      values: bet.values
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default function ParisSportifsPage() {
   const [selectedSport, setSelectedSport] = useState(SPORTS[0].key);
   const [leagues, setLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [events, setEvents] = useState([]);
+  const [eventsOdds, setEventsOdds] = useState({}); // fixtureId -> {1,X,2}
   const [loadingLeagues, setLoadingLeagues] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [loadingOdds, setLoadingOdds] = useState({});
   const [error, setError] = useState("");
   const dayTabs = getDayTabs();
   const [selectedDay, setSelectedDay] = useState(dayTabs[0].value);
+  const [expandedMarkets, setExpandedMarkets] = useState({}); // fixtureId -> true/false
+  const [marketsData, setMarketsData] = useState({}); // fixtureId -> [markets]
 
   // سلة الرهانات
   let betCart = {};
@@ -154,29 +206,75 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = () => {}, cart = [] } = betCart;
 
-  // عند تغيير الرياضة: جلب البطولات الدمية
+  // عند تغيير الرياضة: جلب البطولات الحقيقية (API) أو فارغة إذا ليست Soccer
   useEffect(() => {
     setLoadingLeagues(true);
     setError("");
     setLeagues([]);
     setSelectedLeague(null);
     setEvents([]);
-    setTimeout(() => {
-      setLeagues(DUMMY_LEAGUES[selectedSport] || []);
-      setLoadingLeagues(false);
-    }, 400);
+    setEventsOdds({});
+    setMarketsData({});
+    fetchLeaguesBySport(selectedSport)
+      .then(res => {
+        setLeagues(res);
+        setLoadingLeagues(false);
+        if (selectedSport !== "Soccer" && res.length === 0) {
+          setError("هذه الرياضة غير مدعومة حالياً من مزود البيانات.");
+        }
+      })
+      .catch(() => {
+        setLeagues([]);
+        setLoadingLeagues(false);
+        setError("فشل في جلب البطولات، حاول لاحقاً.");
+      });
   }, [selectedSport]);
 
-  // عند اختيار بطولة أو تغيير اليوم: جلب مباريات اليوم من الدمية
+  // عند اختيار بطولة أو تغيير اليوم: جلب مباريات اليوم من الـAPI
   useEffect(() => {
-    if (!selectedLeague) return setEvents([]);
+    if (!selectedLeague) {
+      setEvents([]);
+      setEventsOdds({});
+      setMarketsData({});
+      return;
+    }
     setLoadingEvents(true);
-    setTimeout(() => {
-      const evs = (DUMMY_EVENTS[selectedLeague.idLeague] || []).filter(ev => ev.dateEvent === selectedDay);
-      setEvents(evs);
-      setLoadingEvents(false);
-    }, 300);
+    setEvents([]);
+    setEventsOdds({});
+    setMarketsData({});
+    fetchEventsForLeagueAndDay(selectedLeague.idLeague, selectedDay)
+      .then(async res => {
+        setEvents(res);
+        setLoadingEvents(false);
+        // جلب كوتات 1X2 لكل مباراة (بالتوازي)
+        const oddsArr = await Promise.all(res.map(ev => fetchOdds1X2(ev.fixtureId)));
+        const oddsObj = {};
+        res.forEach((ev, i) => {
+          oddsObj[ev.fixtureId] = oddsArr[i];
+        });
+        setEventsOdds(oddsObj);
+      })
+      .catch(() => {
+        setEvents([]);
+        setLoadingEvents(false);
+      });
   }, [selectedLeague, selectedDay]);
+
+  // جلب كل الأسواق عند الضغط على السهم
+  async function handleExpandMarkets(ev) {
+    const fixtureId = ev.fixtureId;
+    setExpandedMarkets(exp => ({ ...exp, [fixtureId]: !exp[fixtureId] }));
+    if (!marketsData[fixtureId]) {
+      setLoadingOdds(lo => ({ ...lo, [fixtureId]: true }));
+      const markets = await fetchAllOddsForFixture(fixtureId, 1);
+      setMarketsData(md => ({ ...md, [fixtureId]: markets }));
+      setLoadingOdds(lo => ({ ...lo, [fixtureId]: false }));
+    }
+  }
+
+  function handleBackMarkets(ev) {
+    setExpandedMarkets(exp => ({ ...exp, [ev.fixtureId]: false }));
+  }
 
   return (
     <div style={{ padding: "0 0 70px 0", background: "#f7f7ff", minHeight: "100vh" }}>
@@ -250,6 +348,8 @@ export default function ParisSportifsPage() {
                 setSelectedDay(day.value);
                 setSelectedLeague(null);
                 setEvents([]);
+                setEventsOdds({});
+                setMarketsData({});
               }}
             >
               {day.label}
@@ -291,6 +391,9 @@ export default function ParisSportifsPage() {
                   disabled={!lg?.idLeague}
                 >
                   <Flag country={lg?.strCountry} />
+                  {lg.logo && (
+                    <img src={lg.logo} alt="" style={{ width: 23, height: 23, marginRight: 7, borderRadius: 5 }}/>
+                  )}
                   <span>{lg?.strLeague || "بطولة غير معروفة"}</span>
                 </button>
               ))}
@@ -311,59 +414,186 @@ export default function ParisSportifsPage() {
               <div>جاري تحميل المباريات...</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-                {events.map(ev => (
-                  <div
-                    key={ev?.idEvent}
-                    style={{
-                      background: "#fff",
-                      borderRadius: 10,
-                      boxShadow: "0 2px 10px #2176c12a",
-                      padding: "16px 9px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6
-                    }}
-                  >
-                    <div style={{ fontWeight: "bold", fontSize: "1.08em", color: "#2176c1" }}>
-                      {ev?.strHomeTeam || "??"} vs {ev?.strAwayTeam || "??"}
-                    </div>
-                    <div style={{ color: "#666", fontSize: "0.98em" }}>
-                      {ev?.dateEvent || ""} {ev?.strTime || ""}
-                    </div>
-                    <div style={{ display: "flex", gap: 9, marginTop: 5 }}>
-                      {["1", "X", "2"].map(opt => (
+                {events.map(ev => {
+                  const odds = eventsOdds[ev.fixtureId] || {};
+                  return (
+                    <div
+                      key={ev?.idEvent}
+                      style={{
+                        background: "#fff",
+                        borderRadius: 10,
+                        boxShadow: "0 2px 10px #2176c12a",
+                        padding: "16px 9px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold", fontSize: "1.08em", color: "#2176c1" }}>
+                        {ev?.strHomeTeam || "??"} vs {ev?.strAwayTeam || "??"}
+                      </div>
+                      <div style={{ color: "#666", fontSize: "0.98em" }}>
+                        {ev?.dateEvent || ""} {ev?.strTime || ""}
+                      </div>
+                      {/* خيارات 1X2 مع الكوت الحقيقي */}
+                      <div style={{ display: "flex", gap: 9, marginTop: 5 }}>
+                        {["1", "X", "2"].map(opt => (
+                          <button
+                            key={opt}
+                            style={{
+                              background: odds[opt] ? "#2176c1" : "#ccc",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 6,
+                              padding: "7px 10px",
+                              fontWeight: "bold",
+                              fontSize: "1.07em",
+                              cursor: odds[opt] ? "pointer" : "not-allowed",
+                              opacity: odds[opt] ? 1 : 0.7,
+                              position: "relative"
+                            }}
+                            onClick={() =>
+                              odds[opt] && addToCart({
+                                idEvent: ev?.idEvent,
+                                home: ev?.strHomeTeam,
+                                away: ev?.strAwayTeam,
+                                date: ev?.dateEvent,
+                                time: ev?.strTime,
+                                league: selectedLeague?.strLeague,
+                                option: opt,
+                                cote: odds[opt]
+                              })
+                            }
+                            disabled={cart.some(c => c.idEvent === ev?.idEvent) || !odds[opt]}
+                          >
+                            {opt} {opt === "1" ? ev?.strHomeTeam : opt === "2" ? ev?.strAwayTeam : "تعادل"}
+                            <span style={{
+                              display: "inline-block",
+                              marginLeft: 8,
+                              background: "#fff",
+                              color: "#2176c1",
+                              borderRadius: 5,
+                              padding: "0px 7px",
+                              fontWeight: "bold",
+                              fontSize: "0.96em",
+                              border: "1px solid #2176c1",
+                              minWidth: 38
+                            }}>
+                              {odds[opt] ? odds[opt] : "--"}
+                            </span>
+                          </button>
+                        ))}
+                        {/* سهم لفتح كل الأسواق */}
                         <button
-                          key={opt}
+                          onClick={() => handleExpandMarkets(ev)}
                           style={{
-                            background: "#2176c1",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 6,
-                            padding: "7px 14px",
+                            background: "#f2f8fd",
+                            color: "#2176c1",
+                            border: "1px solid #2176c1",
+                            borderRadius: "50%",
+                            width: 35,
+                            height: 35,
                             fontWeight: "bold",
-                            fontSize: "1.07em",
+                            fontSize: 20,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                             cursor: "pointer"
                           }}
-                          onClick={() =>
-                            addToCart({
-                              idEvent: ev?.idEvent,
-                              home: ev?.strHomeTeam,
-                              away: ev?.strAwayTeam,
-                              date: ev?.dateEvent,
-                              time: ev?.strTime,
-                              league: selectedLeague?.strLeague,
-                              option: opt,
-                              cote: Math.floor(Math.random() * 5 * 100) / 100 + 1.5 // قيمة كوت عشوائية
-                            })
-                          }
-                          disabled={cart.some(c => c.idEvent === ev?.idEvent)}
+                          title="كل الرهانات"
                         >
-                          {opt} {opt === "1" ? ev?.strHomeTeam : opt === "2" ? ev?.strAwayTeam : "تعادل"}
+                          {expandedMarkets[ev.fixtureId] ? "←" : "↓"}
                         </button>
-                      ))}
+                      </div>
+                      {/* قائمة كل الأسواق */}
+                      {expandedMarkets[ev.fixtureId] && (
+                        <div style={{
+                          margin: "12px 0 0 0",
+                          background: "#f2f8fd",
+                          borderRadius: 8,
+                          padding: "12px 7px"
+                        }}>
+                          <button
+                            onClick={() => handleBackMarkets(ev)}
+                            style={{
+                              background: "#e3eaf4",
+                              color: "#2176c1",
+                              border: "none",
+                              borderRadius: 7,
+                              padding: "6px 13px",
+                              fontWeight: "bold",
+                              fontSize: "1em",
+                              marginBottom: 8,
+                              cursor: "pointer"
+                            }}
+                          >← رجوع</button>
+                          {loadingOdds[ev.fixtureId] ? (
+                            <div>جاري تحميل كل الأسواق...</div>
+                          ) : (
+                            <>
+                              {marketsData[ev.fixtureId] && marketsData[ev.fixtureId].length ? (
+                                marketsData[ev.fixtureId].map(mkt => (
+                                  <div key={mkt.id} style={{ marginBottom: 14 }}>
+                                    <div style={{ fontWeight: "bold", color: "#2176c1", marginBottom: 4 }}>
+                                      {mkt.name}
+                                    </div>
+                                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                                      {mkt.values && mkt.values.map(val => (
+                                        <button
+                                          key={val.value}
+                                          style={{
+                                            background: "#2176c1",
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: 6,
+                                            padding: "6px 11px",
+                                            fontWeight: "bold",
+                                            fontSize: "0.99em",
+                                            cursor: "pointer"
+                                          }}
+                                          onClick={() =>
+                                            addToCart({
+                                              idEvent: ev?.idEvent,
+                                              home: ev?.strHomeTeam,
+                                              away: ev?.strAwayTeam,
+                                              date: ev?.dateEvent,
+                                              time: ev?.strTime,
+                                              league: selectedLeague?.strLeague,
+                                              option: mkt.name + " - " + val.value,
+                                              cote: val.odd
+                                            })
+                                          }
+                                          disabled={cart.some(c => c.idEvent === ev?.idEvent)}
+                                        >
+                                          {val.value}
+                                          <span style={{
+                                            display: "inline-block",
+                                            marginLeft: 6,
+                                            background: "#fff",
+                                            color: "#2176c1",
+                                            borderRadius: 4,
+                                            padding: "0px 6px",
+                                            fontWeight: "bold",
+                                            fontSize: "0.96em",
+                                            border: "1px solid #2176c1"
+                                          }}>
+                                            {val.odd}
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div style={{ color: "#888" }}>لا توجد أسواق متاحة حالياً</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {events.length === 0 && (
                   <div style={{ color: "#888" }}>لا توجد مباريات متوفرة لهذه البطولة في هذا اليوم</div>
                 )}
