@@ -10,72 +10,113 @@ export const SUPPORTED_SPORTS = [
   { strSport: "Table Tennis" }
 ];
 
-const API_KEY = "807217";
-const BASE_URL_V1 = "https://www.thesportsdb.com/api/v1/json/" + API_KEY + "/";
-const BASE_URL_V2 = "https://www.thesportsdb.com/api/v2/json/" + API_KEY + "/";
+// RapidAPI Football API config (تستخدم فقط لكرة القدم)
+const RAPIDAPI_KEY = "5915cc956amsh7c4b63e2d2d2e8bp1ee65bjsnb56f28ec67fd";
+const RAPIDAPI_HOST = "api-football-v1.p.rapidapi.com";
+const BASE_URL_FOOTBALL = "https://api-football-v1.p.rapidapi.com/v3";
 
-// جلب الرياضات المدعومة فقط
-export async function getAllSports() {
-  return SUPPORTED_SPORTS;
-}
-
-// جلب كل البطولات (الاحترافية) لرياضة معينة من all_leagues.php
+// جلب كل البطولات لرياضة معينة (حقيقية فقط لكرة القدم)
 export async function getLeaguesBySport(sport = "Soccer") {
-  try {
-    const url = BASE_URL_V1 + "all_leagues.php";
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    // فلترة البطولات حسب الرياضة
-    return (data.leagues || []).filter(lg => lg.strSport === sport && lg.idLeague && lg.strLeague);
-  } catch (e) {
+  if (sport === "Soccer") {
+    try {
+      const res = await fetch(`${BASE_URL_FOOTBALL}/leagues`, {
+        headers: {
+          "x-rapidapi-key": RAPIDAPI_KEY,
+          "x-rapidapi-host": RAPIDAPI_HOST
+        }
+      });
+      const data = await res.json();
+      return (data.response || [])
+        .filter(lg => lg.sport === "Soccer" && lg.league?.name && lg.seasons.some(season => season.current))
+        .map(lg => ({
+          idLeague: String(lg.league.id),
+          strLeague: lg.league.name,
+          strCountry: lg.country.name,
+          logo: lg.league.logo
+        }));
+    } catch (e) {
+      return [];
+    }
+  } else {
+    // البطولات غير مدعومة لغير كرة القدم حالياً
     return [];
   }
 }
 
-// جلب كل مباريات اليوم حسب الرياضة
-export async function getTodayEventsBySport(sport, dateStr) {
-  try {
-    // dateStr بصيغة YYYY-MM-DD
-    const url = `${BASE_URL_V1}eventsday.php?d=${dateStr}&s=${encodeURIComponent(sport)}`;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.events || [];
-  } catch (e) {
-    return [];
-  }
-}
-
-// جلب المباريات القادمة لبطولة معينة (كل الأسبوع أو أكثر)
-export async function getUpcomingEventsByLeague(idLeague) {
-  try {
-    const url = BASE_URL_V2 + "eventsnextleague.php?id=" + idLeague;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.events || [];
-  } catch(e) {
-    return [];
-  }
-}
-
-// جلب مباريات بطولة ليوم معيّن (تفلتر من كل القادمة)
+// جلب مباريات اليوم لبطولة معينة (كرة القدم فقط)
 export async function getEventsByLeagueAndDate(idLeague, dateStr) {
-  const all = await getUpcomingEventsByLeague(idLeague);
-  if (!dateStr) return all;
-  return all.filter(event => event.dateEvent === dateStr);
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?league=${idLeague}&date=${dateStr}`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    return (data.response || [])
+      .filter(ev => ev.fixture.status.short === "NS")
+      .map(ev => ({
+        idEvent: String(ev.fixture.id),
+        strHomeTeam: ev.teams.home.name,
+        strAwayTeam: ev.teams.away.name,
+        dateEvent: ev.fixture.date.slice(0, 10),
+        strTime: ev.fixture.date.slice(11, 16),
+        leagueLogo: ev.league.logo,
+        fixtureId: ev.fixture.id
+      }));
+  } catch (e) {
+    return [];
+  }
 }
 
-// جلب نتائج مباشرة حسب الرياضة (اختياري)
-export async function getLiveScoresBySport(sport = "Soccer") {
+// جلب كوتات 1X2 لمباراة واحدة (كرة القدم فقط)
+export async function getOdds1X2ByFixture(fixtureId) {
   try {
-    const url = BASE_URL_V2 + "livescore.php?s=" + encodeURIComponent(sport);
-    const res = await fetch(url);
-    if (!res.ok) return [];
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds?fixture=${fixtureId}&bet=1`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
     const data = await res.json();
-    return data.events || [];
-  } catch(e) {
+    if (!data.response || !data.response.length) return null;
+    for (const bookmaker of data.response[0].bookmakers || []) {
+      const bet = bookmaker.bets && bookmaker.bets.find(b => b.id === 1);
+      if (bet && bet.values) {
+        const odds = {};
+        bet.values.forEach(val => {
+          if (val.value === "Home") odds["1"] = val.odd;
+          if (val.value === "Draw") odds["X"] = val.odd;
+          if (val.value === "Away") odds["2"] = val.odd;
+        });
+        return odds;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// جلب كل الأسواق (كل الرهانات) لمباراة واحدة من Bookmaker معيّن (id=1 = Bet365 غالبا)
+export async function getAllMarketsByFixture(fixtureId, bookmakerId = 1) {
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds?fixture=${fixtureId}&bookmaker=${bookmakerId}`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    if (!data.response || !data.response.length) return [];
+    const bookmaker = data.response[0].bookmakers.find(bm => bm.id === bookmakerId) || data.response[0].bookmakers[0];
+    if (!bookmaker || !bookmaker.bets) return [];
+    return bookmaker.bets.map(bet => ({
+      id: bet.id,
+      name: bet.name,
+      values: bet.values
+    }));
+  } catch {
     return [];
   }
 }
