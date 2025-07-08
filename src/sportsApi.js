@@ -15,8 +15,8 @@ const RAPIDAPI_KEY = "5915cc956amsh7c4b63e2d2d2e8bp1ee65bjsnb56f28ec67fd";
 const RAPIDAPI_HOST = "api-football-v1.p.rapidapi.com";
 const BASE_URL_FOOTBALL = "https://api-football-v1.p.rapidapi.com/v3";
 
-// timezone الافتراضي (عدله حسب جمهورك، مثلاً: Europe/Paris)
-const DEFAULT_TIMEZONE = "Europe/Paris";
+// timezone الافتراضي تونس
+const DEFAULT_TIMEZONE = "Africa/Tunis";
 
 // جلب كل البطولات لرياضة معينة (حقيقية فقط لكرة القدم)
 export async function getLeaguesBySport(sport = "Soccer") {
