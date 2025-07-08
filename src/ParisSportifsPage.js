@@ -61,8 +61,8 @@ function Flag({ country }) {
 export default function ParisSportifsPage() {
   const [selectedSport, setSelectedSport] = useState(SPORTS[0].key);
   const [leagues, setLeagues] = useState([]);
-  const [filteredLeagues, setFilteredLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
+  const [allEvents, setAllEvents] = useState([]);
   const [events, setEvents] = useState([]);
   const [loadingLeagues, setLoadingLeagues] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -79,60 +79,54 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = () => {}, cart = [] } = betCart;
 
-  // جلب البطولات والمباريات لكل بطولة ثم الفلترة حسب اليوم
+  // جلب البطولات عند تغيير الرياضة
   useEffect(() => {
     let ignore = false;
-    async function fetchLeaguesAndFilter() {
+    async function fetchLeagues() {
       setLoadingLeagues(true);
       setError("");
       setLeagues([]);
-      setFilteredLeagues([]);
       setSelectedLeague(null);
+      setAllEvents([]);
       setEvents([]);
       try {
         const allLeagues = await getLeaguesBySport(selectedSport);
-        // جلب كل المباريات للأسبوع لكل بطولة
-        const leaguesWithEvents = await Promise.all(
-          allLeagues.map(async (lg) => {
-            const events = await getUpcomingEventsByLeague(lg.idLeague);
-            return {
-              ...lg,
-              eventsThisWeek: events || []
-            };
-          })
-        );
-        // فلترة البطولات التي لديها مباريات في اليوم المختار فقط
-        const leaguesWithEventsToday = leaguesWithEvents.filter(
-          (lg) =>
-            lg.eventsThisWeek &&
-            lg.eventsThisWeek.some(ev => ev.dateEvent === selectedDay)
-        );
-        if (!ignore) {
-          setLeagues(leaguesWithEvents);
-          setFilteredLeagues(leaguesWithEventsToday);
-        }
+        if (!ignore) setLeagues(allLeagues);
       } catch {
         setError("خطأ في تحميل البطولات، حاول لاحقاً");
       }
       setLoadingLeagues(false);
     }
-    fetchLeaguesAndFilter();
+    fetchLeagues();
     return () => { ignore = true; };
     // eslint-disable-next-line
-  }, [selectedSport, selectedDay]);
+  }, [selectedSport]);
 
-  // عند اختيار بطولة، عرض مباريات هذا اليوم فقط
-  const handleLeagueSelect = (lg) => {
+  // عند اختيار بطولة: جلب كافة مباريات البطولة القادمة
+  const handleLeagueSelect = async (lg) => {
     setSelectedLeague(lg);
     setLoadingEvents(true);
     setError("");
-    // جلب مباريات اليوم المختار من الأحداث المخزنة محليًا
-    const matchesToday = (lg.eventsThisWeek || []).filter(
-      ev => ev.dateEvent === selectedDay
-    );
-    setEvents(matchesToday);
+    try {
+      const eventsAll = await getUpcomingEventsByLeague(lg.idLeague);
+      setAllEvents(eventsAll || []);
+      // فلترة مباريات اليوم الحالي فقط (حسب الزر المحدد)
+      setEvents((eventsAll || []).filter(ev => ev.dateEvent === selectedDay));
+    } catch {
+      setAllEvents([]);
+      setEvents([]);
+      setError("خطأ في تحميل المباريات");
+    }
     setLoadingEvents(false);
   };
+
+  // عند تغيير اليوم: فلترة من allEvents إذا بطولة مختارة
+  useEffect(() => {
+    if (selectedLeague && allEvents.length > 0) {
+      setEvents(allEvents.filter(ev => ev.dateEvent === selectedDay));
+    }
+    // eslint-disable-next-line
+  }, [selectedDay]);
 
   // --- واجهة المستخدم ---
   return (
@@ -205,8 +199,7 @@ export default function ParisSportifsPage() {
               }}
               onClick={() => {
                 setSelectedDay(day.value);
-                setSelectedLeague(null);
-                setEvents([]);
+                // عند تغيير اليوم، لو هناك بطولة مختارة، سيعاد فلترة الأحداث تلقائياً في useEffect
               }}
             >
               {day.label}
@@ -226,7 +219,7 @@ export default function ParisSportifsPage() {
               gap: 7,
               marginBottom: 10
             }}>
-              {filteredLeagues.map(lg => (
+              {leagues.map(lg => (
                 <button
                   key={lg?.idLeague || Math.random()}
                   style={{
@@ -251,9 +244,9 @@ export default function ParisSportifsPage() {
                   <span>{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</span>
                 </button>
               ))}
-              {!error && filteredLeagues.length === 0 && (
+              {!error && leagues.length === 0 && (
                 <div style={{ color: "#888", margin: "12px 0" }}>
-                  لا توجد بطولات متوفرة لهذه الرياضة في هذا اليوم
+                  لا توجد بطولات متوفرة لهذه الرياضة
                 </div>
               )}
             </div>
