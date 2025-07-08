@@ -120,3 +120,61 @@ export async function getAllMarketsByFixture(fixtureId, bookmakerId = 1) {
     return [];
   }
 }
+
+// جلب كل المباريات الجارية الآن (LIVE) مع بياناتها (كرة القدم فقط)
+export async function getLiveFixtures() {
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?live=all`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    return (data.response || []).map(ev => ({
+      idEvent: String(ev.fixture.id),
+      strHomeTeam: ev.teams.home.name,
+      strAwayTeam: ev.teams.away.name,
+      dateEvent: ev.fixture.date.slice(0, 10),
+      strTime: ev.fixture.date.slice(11, 16),
+      leagueLogo: ev.league.logo,
+      fixtureId: ev.fixture.id,
+      status: ev.fixture.status, // لمعلومات أكثر (الشوط، الوقت)
+      goals: ev.goals
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
+// جلب الكوتات الحية (Live odds) لكل المباريات الجارية (كل Bookmaker وكل سوق)
+export async function getLiveOdds() {
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds/live`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    return data.response || [];
+  } catch {
+    return [];
+  }
+}
+
+// جلب أنواع الأسواق (bets/markets) المتوفرة حالياً في live odds
+export async function getLiveOddsBets() {
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds/live/bets`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    return data.response || [];
+  } catch {
+    return [];
+  }
+}
