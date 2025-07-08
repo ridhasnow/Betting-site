@@ -15,11 +15,14 @@ const RAPIDAPI_KEY = "5915cc956amsh7c4b63e2d2d2e8bp1ee65bjsnb56f28ec67fd";
 const RAPIDAPI_HOST = "api-football-v1.p.rapidapi.com";
 const BASE_URL_FOOTBALL = "https://api-football-v1.p.rapidapi.com/v3";
 
+// timezone الافتراضي (عدله حسب جمهورك، مثلاً: Europe/Paris)
+const DEFAULT_TIMEZONE = "Europe/Paris";
+
 // جلب كل البطولات لرياضة معينة (حقيقية فقط لكرة القدم)
 export async function getLeaguesBySport(sport = "Soccer") {
   if (sport === "Soccer") {
     try {
-      const res = await fetch(`${BASE_URL_FOOTBALL}/leagues`, {
+      const res = await fetch(`${BASE_URL_FOOTBALL}/leagues?timezone=${DEFAULT_TIMEZONE}`, {
         headers: {
           "x-rapidapi-key": RAPIDAPI_KEY,
           "x-rapidapi-host": RAPIDAPI_HOST
@@ -46,7 +49,7 @@ export async function getLeaguesBySport(sport = "Soccer") {
 // جلب مباريات اليوم لبطولة معينة (كرة القدم فقط)
 export async function getEventsByLeagueAndDate(idLeague, dateStr) {
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?league=${idLeague}&date=${dateStr}`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?league=${idLeague}&date=${dateStr}&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -72,7 +75,7 @@ export async function getEventsByLeagueAndDate(idLeague, dateStr) {
 // جلب كوتات 1X2 لمباراة واحدة (كرة القدم فقط)
 export async function getOdds1X2ByFixture(fixtureId) {
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/odds?fixture=${fixtureId}&bet=1`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds?fixture=${fixtureId}&bet=1&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -101,7 +104,7 @@ export async function getOdds1X2ByFixture(fixtureId) {
 // جلب كل الأسواق (كل الرهانات) لمباراة واحدة من Bookmaker معيّن (id=1 = Bet365 غالبا)
 export async function getAllMarketsByFixture(fixtureId, bookmakerId = 1) {
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/odds?fixture=${fixtureId}&bookmaker=${bookmakerId}`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds?fixture=${fixtureId}&bookmaker=${bookmakerId}&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -124,7 +127,7 @@ export async function getAllMarketsByFixture(fixtureId, bookmakerId = 1) {
 // جلب كل المباريات الجارية الآن (LIVE) مع بياناتها (كرة القدم فقط)
 export async function getLiveFixtures() {
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?live=all`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?live=all&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -150,7 +153,7 @@ export async function getLiveFixtures() {
 // جلب الكوتات الحية (Live odds) لكل المباريات الجارية (كل Bookmaker وكل سوق)
 export async function getLiveOdds() {
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/odds/live`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds/live?timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -166,7 +169,7 @@ export async function getLiveOdds() {
 // جلب أنواع الأسواق (bets/markets) المتوفرة حالياً في live odds
 export async function getLiveOddsBets() {
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/odds/live/bets`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/odds/live/bets?timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -178,11 +181,12 @@ export async function getLiveOddsBets() {
     return [];
   }
 }
+
 // جلب النتائج المباشرة لكرة القدم فقط
 export async function getLiveScoresBySport(sport = "Soccer") {
   if (sport !== "Soccer") return [];
   try {
-    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?live=all`, {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/fixtures?live=all&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -190,6 +194,22 @@ export async function getLiveScoresBySport(sport = "Soccer") {
     });
     const data = await res.json();
     return (data.response || []);
+  } catch {
+    return [];
+  }
+}
+
+// جلب قائمة المناطق الزمنية المدعومة من الAPI (اختياري)
+export async function getAvailableTimezones() {
+  try {
+    const res = await fetch(`${BASE_URL_FOOTBALL}/timezone`, {
+      headers: {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": RAPIDAPI_HOST
+      }
+    });
+    const data = await res.json();
+    return data.response || [];
   } catch {
     return [];
   }
