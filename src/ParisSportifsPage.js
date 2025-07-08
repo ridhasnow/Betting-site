@@ -7,6 +7,9 @@ const RAPIDAPI_KEY = "5915cc956amsh7c4b63e2d2d2e8bp1ee65bjsnb56f28ec67fd";
 const RAPIDAPI_HOST = "api-football-v1.p.rapidapi.com";
 const BASE_URL = "https://api-football-v1.p.rapidapi.com/v3";
 
+// استخدم التايمزون الخاص بتونس
+const DEFAULT_TIMEZONE = "Africa/Tunis";
+
 // قائمة الرياضات المعتمدة (ثابتة)
 const SPORTS = [
   { key: "Soccer", label: "Football", icon: "⚽" },
@@ -68,7 +71,7 @@ function Flag({ country }) {
 // جلب البطولات حسب الرياضة (مع فلترة حسب الرياضة)
 async function fetchLeaguesBySport(sportKey) {
   try {
-    const res = await fetch(`${BASE_URL}/leagues`, {
+    const res = await fetch(`${BASE_URL}/leagues?timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -96,7 +99,7 @@ async function fetchLeaguesBySport(sportKey) {
 // جلب مباريات اليوم لبطولة معينة
 async function fetchEventsForLeagueAndDay(leagueId, dayStr) {
   try {
-    const res = await fetch(`${BASE_URL}/fixtures?league=${leagueId}&date=${dayStr}`, {
+    const res = await fetch(`${BASE_URL}/fixtures?league=${leagueId}&date=${dayStr}&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -123,7 +126,7 @@ async function fetchEventsForLeagueAndDay(leagueId, dayStr) {
 // جلب كوتات 1X2 (سوق رئيسي) لمباراة واحدة
 async function fetchOdds1X2(fixtureId) {
   try {
-    const res = await fetch(`${BASE_URL}/odds?fixture=${fixtureId}&bet=1`, {
+    const res = await fetch(`${BASE_URL}/odds?fixture=${fixtureId}&bet=1&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -152,7 +155,7 @@ async function fetchOdds1X2(fixtureId) {
 // جلب كل الأسواق (كل الرهانات) لمباراة واحدة (Bookmaker=1 مثلاً)
 async function fetchAllOddsForFixture(fixtureId, bookmakerId = 1) {
   try {
-    const res = await fetch(`${BASE_URL}/odds?fixture=${fixtureId}&bookmaker=${bookmakerId}`, {
+    const res = await fetch(`${BASE_URL}/odds?fixture=${fixtureId}&bookmaker=${bookmakerId}&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -175,7 +178,7 @@ async function fetchAllOddsForFixture(fixtureId, bookmakerId = 1) {
 // جلب كل المباريات الجارية الآن (LIVE) مع بياناتها
 async function fetchLiveFixtures() {
   try {
-    const res = await fetch(`${BASE_URL}/fixtures?live=all`, {
+    const res = await fetch(`${BASE_URL}/fixtures?live=all&timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
@@ -200,9 +203,8 @@ async function fetchLiveFixtures() {
 
 // جلب كوتات 1X2 LIVE لمباراة واحدة (من live odds)
 async function fetchLiveOdds1X2(fixtureId) {
-  // جلب كل الكوتات الحية ثم استخراج كوتات مباراة محددة
   try {
-    const res = await fetch(`${BASE_URL}/odds/live`, {
+    const res = await fetch(`${BASE_URL}/odds/live?timezone=${DEFAULT_TIMEZONE}`, {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
