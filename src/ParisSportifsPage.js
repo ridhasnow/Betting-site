@@ -1,152 +1,328 @@
 import React, { useEffect, useState, useContext } from "react";
 import {
-  getAllSports,
   getLeaguesBySport,
-  getUpcomingEventsByLeague
+  getEventsByLeagueAndDate
 } from "./sportsApi";
 import { BetCartContext } from "./BetCartContext";
 import BetCartFab from "./BetCartFab";
 
+// قائمة الرياضات المعتمدة
+const SPORTS = [
+  { key: "Soccer", label: "Football", icon: "⚽" },
+  { key: "Basketball", label: "Basketball", icon: "🏀" },
+  { key: "Tennis", label: "Tennis", icon: "🎾" },
+  { key: "Handball", label: "Handball", icon: "🤾‍♂️" },
+  { key: "Rugby", label: "Rugby", icon: "🏉" },
+  { key: "Ice Hockey", label: "Ice Hockey", icon: "🏒" },
+  { key: "Volleyball", label: "Volleyball", icon: "🏐" },
+  { key: "Table Tennis", label: "Tennis Table", icon: "🏓" }
+];
+
+// دالة لجلب أيام الأسبوع (مع اليوم الحالي)
+function getDayTabs() {
+  const days = [];
+  const today = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    days.push({
+      label:
+        i === 0
+          ? "Aujourd'hui"
+          : d
+              .toLocaleDateString("fr-FR", { weekday: "long" })
+              .replace(/^\w/, (c) => c.toUpperCase()),
+      value: d.toISOString().slice(0, 10)
+    });
+  }
+  return days;
+}
+
 export default function ParisSportifsPage() {
-  const [sports, setSports] = useState([]);
-  const [selectedSport, setSelectedSport] = useState("Soccer");
+  const [selectedSport, setSelectedSport] = useState(SPORTS[0].key);
   const [leagues, setLeagues] = useState([]);
+  const [filteredLeagues, setFilteredLeagues] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingLeagues, setLoadingLeagues] = useState(false);
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState("");
+  const dayTabs = getDayTabs();
+  const [selectedDay, setSelectedDay] = useState(dayTabs[0].value);
 
+  // ربط سلة الرهانات
   let betCart = {};
   try {
     betCart = useContext(BetCartContext) || {};
   } catch {
     betCart = {};
   }
-  const { addToCart = ()=>{}, cart = [] } = betCart;
+  const { addToCart = () => {}, cart = [] } = betCart;
 
-  // جلب فقط الرياضات المدعومة (من sportsApi.js)
-    useEffect(() => {
-    if (!selectedSport) return;
+  // جلب البطولات عند تغيير الرياضة أو اليوم
+  useEffect(() => {
+    setLoadingLeagues(true);
     setError("");
     setLeagues([]);
+    setFilteredLeagues([]);
     setSelectedLeague(null);
     setEvents([]);
     getLeaguesBySport(selectedSport)
-      .then(result => {
-        console.log("Leagues for", selectedSport, result); // جديد
-        if (Array.isArray(result) && result.length > 0) {
-          setLeagues(result);
-          setError(""); // لا تظهر خطأ
-        } else {
-          setLeagues([]);
-          setError(""); // رياضة بدون بطولات، لا تظهر خطأ
-        }
+      .then((result) => {
+        // فقط البطولات التي لديها مباريات اليوم
+        setLeagues(result || []);
+        filterLeaguesByDay(result || [], selectedDay);
+        setLoadingLeagues(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError("خطأ في تحميل البطولات، حاول لاحقاً");
-        setLeagues([]);
+        setLoadingLeagues(false);
       });
-  }, [selectedSport]);
+    // eslint-disable-next-line
+  }, [selectedSport, selectedDay]);
 
-  // عند اختيار بطولة (league) جلب المباريات القادمة فقط
+  // فلترة البطولات حسب اليوم المختار
+  function filterLeaguesByDay(leaguesList, date) {
+    if (!leaguesList.length) {
+      setFilteredLeagues([]);
+      return;
+    }
+    // جلب البطولات التي لديها مباريات لهذا اليوم
+    // نفترض أن كل بطولة تحتوي على خاصية availableDates فيها تواريخ متوفرة (إذا كان الـ API يدعم ذلك)
+    // إذا لم يكن موجودًا، ستحتاج لجلب المباريات لكل بطولة وتصفية التي لديها مباريات في هذا اليوم (قد يكون بطيئًا حسب الـ API)
+    // هنا سنجرب الخيار السريع، وإن لم ينجح، نعدل لاحقًا معك!
+    const filtered = leaguesList.filter(
+      (lg) =>
+        !lg.availableDates ||
+        lg.availableDates.includes(date) ||
+        !date // إذا لم تتوفر خاصية التواريخ، نظهر الكل
+    );
+    setFilteredLeagues(filtered.length ? filtered : leaguesList);
+  }
+
+  // عند اختيار يوم من الشريط
+  useEffect(() => {
+    filterLeaguesByDay(leagues, selectedDay);
+    // eslint-disable-next-line
+  }, [leagues, selectedDay]);
+
+  // عند اختيار بطولة، جلب المباريات للأسبوع (أو لليوم المختار فقط)
   const handleLeagueSelect = async (lg) => {
     setSelectedLeague(lg);
-    setLoading(true);
+    setLoadingEvents(true);
+    setEvents([]);
     setError("");
     try {
-      const evs = await getUpcomingEventsByLeague(lg.idLeague);
-      if (Array.isArray(evs)) setEvents(evs);
-      else setEvents([]);
+      const evs = await getEventsByLeagueAndDate(lg.idLeague, selectedDay);
+      setEvents(Array.isArray(evs) ? evs : []);
     } catch {
       setError("خطأ في تحميل المباريات، حاول لاحقاً");
       setEvents([]);
     }
-    setLoading(false);
+    setLoadingEvents(false);
   };
 
+  // عرض علم الدولة (بناءً على اسم الدولة)
+  function Flag({ country }) {
+    if (!country) return null;
+    // استخدم مكتبة أعلام أو صور جاهزة حسب مشروعك، مؤقتًا نستخدم Emoji كحل مؤقت
+    // يمكنك لاحقًا ربطه بصور أعلام حقيقية
+    const emojiFlags = {
+      France: "🇫🇷",
+      Italy: "🇮🇹",
+      Spain: "🇪🇸",
+      Germany: "🇩🇪",
+      England: "🏴",
+      Tunisia: "🇹🇳",
+      Morocco: "🇲🇦",
+      USA: "🇺🇸"
+      // أضف باقي الدول حسب الحاجة
+    };
+    return (
+      <span style={{ fontSize: 21, marginRight: 7 }}>
+        {emojiFlags[country] || "🏳️"}
+      </span>
+    );
+  }
+
+  // --- واجهة المستخدم ---
   return (
-    <div style={{padding:"0 0 70px 0", background:"#f7f7ff", minHeight:"100vh"}}>
+    <div style={{ padding: "0 0 70px 0", background: "#f7f7ff", minHeight: "100vh" }}>
       <header className="header header-black">
         <span className="header-title">Paris Sportifs</span>
       </header>
-      <div style={{padding:"12px 8px"}}>
-        {error && <div style={{color:"red", marginBottom:12}}>{error}</div>}
+
+      <div style={{ padding: "12px 8px" }}>
+        {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
+
         {/* اختيار الرياضة */}
-        <div style={{marginBottom: 20}}>
-          <h3 style={{fontSize:"1.1em", marginBottom:8}}>اختر الرياضة</h3>
-          <div style={{display:"flex", flexWrap:"wrap", gap:10}}>
-            {sports.map(sport => (
+        <div style={{ marginBottom: 22 }}>
+          <h3 style={{ fontSize: "1.1em", marginBottom: 12, color: "#2176c1" }}>اختر الرياضة</h3>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 14,
+            justifyItems: "center"
+          }}>
+            {SPORTS.map(sport => (
               <button
-                key={sport?.strSport}
+                key={sport.key}
                 style={{
-                  background: selectedSport === sport?.strSport ? "#2176c1" : "#eee",
-                  color: selectedSport === sport?.strSport ? "#fff" : "#222",
-                  borderRadius: 8, border: "none", padding: "7px 10px", fontWeight: "bold", cursor:"pointer"
+                  background: selectedSport === sport.key ? "#2176c1" : "#fff",
+                  color: selectedSport === sport.key ? "#fff" : "#222",
+                  borderRadius: 13,
+                  border: "1.5px solid #2176c1",
+                  boxShadow: selectedSport === sport.key ? "0 2px 14px #2176c12a" : "none",
+                  padding: "25px 0 13px 0",
+                  fontWeight: "bold",
+                  fontSize: "1.06em",
+                  cursor: "pointer",
+                  minWidth: 0,
+                  width: "92%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  transition: "all 0.1s"
                 }}
-                onClick={() => setSelectedSport(sport.strSport)}
-              >{sport?.strSport || "رياضة"}</button>
+                onClick={() => setSelectedSport(sport.key)}
+              >
+                <span style={{ fontSize: 33, marginBottom: 5 }}>{sport.icon}</span>
+                {sport.label}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* اختيار البطولة */}
+        {/* شريط الأيام */}
+        <div style={{
+          display: "flex",
+          gap: 8,
+          margin: "18px 0 14px 0",
+          overflowX: "auto",
+          paddingBottom: 6
+        }}>
+          {dayTabs.map(day => (
+            <button
+              key={day.value}
+              style={{
+                background: selectedDay === day.value ? "#2176c1" : "#e3eaf4",
+                color: selectedDay === day.value ? "#fff" : "#2176c1",
+                border: "none",
+                borderRadius: 8,
+                padding: "7px 16px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                minWidth: 90
+              }}
+              onClick={() => {
+                setSelectedDay(day.value);
+                setSelectedLeague(null);
+                setEvents([]);
+              }}
+            >
+              {day.label}
+            </button>
+          ))}
+        </div>
+
+        {/* البطولات */}
         <div>
-          <h3 style={{fontSize:"1.1em", marginBottom:8}}>اختر البطولة</h3>
-          <div style={{display:"flex", flexWrap:"wrap", gap:10}}>
-            {leagues.map(lg => (
-              <button
-                key={lg?.idLeague || Math.random()}
-                style={{
-                  background: selectedLeague?.idLeague === lg?.idLeague ? "#2176c1" : "#eee",
-                  color: selectedLeague?.idLeague === lg?.idLeague ? "#fff" : "#222",
-                  borderRadius: 8, border: "none", padding: "7px 10px", fontWeight: "bold", cursor:"pointer"
-                }}
-                onClick={() => handleLeagueSelect(lg)}
-                disabled={!lg?.idLeague}
-              >{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</button>
-            ))}
-          </div>
-          {/* رسالة في حال لا يوجد بطولات */}
-          {!error && leagues.length === 0 && (
-            <div style={{color:"#888", margin:"12px 0"}}>لا توجد بطولات متوفرة لهذه الرياضة</div>
+          <h3 style={{ fontSize: "1.1em", marginBottom: 8 }}>اختر البطولة</h3>
+          {loadingLeagues ? (
+            <div>جاري تحميل البطولات...</div>
+          ) : (
+            <div style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 11,
+              marginBottom: 10
+            }}>
+              {filteredLeagues.map(lg => (
+                <button
+                  key={lg?.idLeague || Math.random()}
+                  style={{
+                    background: selectedLeague?.idLeague === lg?.idLeague ? "#2176c1" : "#fff",
+                    color: selectedLeague?.idLeague === lg?.idLeague ? "#fff" : "#222",
+                    borderRadius: 10,
+                    border: "1px solid #2176c1",
+                    padding: "8px 13px",
+                    fontWeight: "bold",
+                    fontSize: "1em",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    minWidth: 0
+                  }}
+                  onClick={() => handleLeagueSelect(lg)}
+                  disabled={!lg?.idLeague}
+                >
+                  <Flag country={lg?.strCountry} />
+                  <span>{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</span>
+                </button>
+              ))}
+              {!error && filteredLeagues.length === 0 && (
+                <div style={{ color: "#888", margin: "12px 0" }}>
+                  لا توجد بطولات متوفرة لهذه الرياضة في هذا اليوم
+                </div>
+              )}
+            </div>
           )}
         </div>
 
         {/* عرض المباريات */}
         {selectedLeague && (
-          <div style={{marginTop:22}}>
-            <h3 style={{fontSize:"1.1em"}}>المباريات</h3>
-            {loading ? <div>جاري التحميل...</div> :
-              <div style={{display:"flex", flexDirection:"column", gap:13}}>
+          <div style={{ marginTop: 22 }}>
+            <h3 style={{ fontSize: "1.1em" }}>المباريات</h3>
+            {loadingEvents ? (
+              <div>جاري تحميل المباريات...</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
                 {events.map(ev => (
-                  <div key={ev?.idEvent || Math.random()} style={{
-                    background:"#fff", borderRadius:10, boxShadow:"0 2px 10px #2176c12a",
-                    padding:"16px 9px", display:"flex", flexDirection:"column", gap:6
-                  }}>
-                    <div style={{fontWeight:"bold", fontSize:"1.05em", color:"#2176c1"}}>
+                  <div
+                    key={ev?.idEvent || Math.random()}
+                    style={{
+                      background: "#fff",
+                      borderRadius: 10,
+                      boxShadow: "0 2px 10px #2176c12a",
+                      padding: "16px 9px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold", fontSize: "1.08em", color: "#2176c1" }}>
                       {ev?.strHomeTeam || "??"} vs {ev?.strAwayTeam || "??"}
                     </div>
-                    <div style={{color:"#666", fontSize:"0.98em"}}>
+                    <div style={{ color: "#666", fontSize: "0.98em" }}>
                       {ev?.dateEvent || ""} {ev?.strTime || ""}
                     </div>
-                    <div style={{display:"flex", gap:8, marginTop:5}}>
+                    <div style={{ display: "flex", gap: 9, marginTop: 5 }}>
                       {["1", "X", "2"].map(opt => (
-                        <button key={opt}
+                        <button
+                          key={opt}
                           style={{
-                            background:"#2176c1", color:"#fff", border:"none",
-                            borderRadius:6, padding:"7px 14px", fontWeight:"bold", fontSize:"1.07em", cursor:"pointer"
+                            background: "#2176c1",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "7px 14px",
+                            fontWeight: "bold",
+                            fontSize: "1.07em",
+                            cursor: "pointer"
                           }}
-                          onClick={() => addToCart({
-                            idEvent: ev?.idEvent,
-                            home: ev?.strHomeTeam,
-                            away: ev?.strAwayTeam,
-                            date: ev?.dateEvent,
-                            time: ev?.strTime,
-                            league: selectedLeague?.strLeague,
-                            option: opt,
-                            cote: Math.floor(Math.random()*5*100)/100 + 1.5 // قيمة كوت عشوائية
-                          })}
-                          disabled={cart.some(c=>c.idEvent===ev?.idEvent)}
+                          onClick={() =>
+                            addToCart({
+                              idEvent: ev?.idEvent,
+                              home: ev?.strHomeTeam,
+                              away: ev?.strAwayTeam,
+                              date: ev?.dateEvent,
+                              time: ev?.strTime,
+                              league: selectedLeague?.strLeague,
+                              option: opt,
+                              cote: Math.floor(Math.random() * 5 * 100) / 100 + 1.5 // قيمة كوت عشوائية
+                            })
+                          }
+                          disabled={cart.some(c => c.idEvent === ev?.idEvent)}
                         >
                           {opt} {opt === "1" ? ev?.strHomeTeam : opt === "2" ? ev?.strAwayTeam : "تعادل"}
                         </button>
@@ -154,9 +330,11 @@ export default function ParisSportifsPage() {
                     </div>
                   </div>
                 ))}
-                {events.length === 0 && <div style={{color:"#888"}}>لا توجد مباريات متوفرة</div>}
+                {events.length === 0 && (
+                  <div style={{ color: "#888" }}>لا توجد مباريات متوفرة لهذه البطولة في هذا اليوم</div>
+                )}
               </div>
-            }
+            )}
           </div>
         )}
       </div>
