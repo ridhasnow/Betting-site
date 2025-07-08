@@ -19,16 +19,14 @@ export async function getAllSports() {
   return SUPPORTED_SPORTS;
 }
 
-// جلب البطولات لرياضة معينة => يجب استعمال v1 هنا فقط!
+// جلب البطولات لرياضة معينة
 export async function getLeaguesBySport(sport = "Soccer") {
   try {
     const url = BASE_URL_V1 + "search_all_leagues.php?s=" + encodeURIComponent(sport);
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
-    // البطولات أحيانا في data.countries أو data.leagues حسب نوع الاستجابة
     const result = data.countries || data.leagues || [];
-    // تصفية النتائج للتأكد من وجود idLeague وstrLeague
     return result
       .filter(lg => lg.idLeague && lg.strLeague)
       .map(lg => ({
@@ -41,8 +39,21 @@ export async function getLeaguesBySport(sport = "Soccer") {
   }
 }
 
+// جلب كل مباريات اليوم حسب الرياضة
+export async function getTodayEventsBySport(sport, dateStr) {
+  try {
+    // dateStr بصيغة YYYY-MM-DD
+    const url = `${BASE_URL_V1}eventsday.php?d=${dateStr}&s=${encodeURIComponent(sport)}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.events || [];
+  } catch (e) {
+    return [];
+  }
+}
+
 // جلب المباريات القادمة لبطولة معينة (كل الأسبوع)
-// معالجة الخطأ 404 بحيث ترجع مصفوفة فاضية بدل كسر الكود
 export async function getUpcomingEventsByLeague(idLeague) {
   try {
     const url = BASE_URL_V2 + "eventsnextleague.php?id=" + idLeague;
@@ -57,10 +68,8 @@ export async function getUpcomingEventsByLeague(idLeague) {
 
 // جلب مباريات بطولة ليوم معيّن
 export async function getEventsByLeagueAndDate(idLeague, dateStr) {
-  // نجلب كل أحداث الأسبوع ثم نفلتر حسب التاريخ
   const all = await getUpcomingEventsByLeague(idLeague);
   if (!dateStr) return all;
-  // فلترة الأحداث حسب التاريخ بالضبط
   return all.filter(event => event.dateEvent === dateStr);
 }
 
