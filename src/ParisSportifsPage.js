@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import {
   getLeaguesBySport,
-  getEventsByLeagueAndDate
+  getUpcomingEventsByLeague
 } from "./sportsApi";
 import { BetCartContext } from "./BetCartContext";
 import BetCartFab from "./BetCartFab";
@@ -38,6 +38,26 @@ function getDayTabs() {
   return days;
 }
 
+// دوال أعلام تجريبية
+function Flag({ country }) {
+  if (!country) return null;
+  const emojiFlags = {
+    France: "🇫🇷", Italy: "🇮🇹", Spain: "🇪🇸", Germany: "🇩🇪", England: "🏴",
+    Tunisia: "🇹🇳", Morocco: "🇲🇦", USA: "🇺🇸", Denmark: "🇩🇰", Ecuador: "🇪🇨",
+    DR: "🇨🇩", "DR Congo": "🇨🇩", Dominican: "🇩🇴", Albania: "🇦🇱", Algeria: "🇩🇿"
+    // أضف المزيد حسب الحاجة
+  };
+  // محاولة استخراج العلم من اسم الدولة
+  const match = Object.keys(emojiFlags).find(key =>
+    (country || "").toLowerCase().includes(key.toLowerCase())
+  );
+  return (
+    <span style={{ fontSize: 21, marginRight: 7 }}>
+      {emojiFlags[match] || "🏳️"}
+    </span>
+  );
+}
+
 export default function ParisSportifsPage() {
   const [selectedSport, setSelectedSport] = useState(SPORTS[0].key);
   const [leagues, setLeagues] = useState([]);
@@ -59,91 +79,60 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = () => {}, cart = [] } = betCart;
 
-  // جلب البطولات عند تغيير الرياضة أو اليوم
+  // جلب البطولات والمباريات لكل بطولة ثم الفلترة حسب اليوم
   useEffect(() => {
-    setLoadingLeagues(true);
-    setError("");
-    setLeagues([]);
-    setFilteredLeagues([]);
-    setSelectedLeague(null);
-    setEvents([]);
-    getLeaguesBySport(selectedSport)
-      .then((result) => {
-        // فقط البطولات التي لديها مباريات اليوم
-        setLeagues(result || []);
-        filterLeaguesByDay(result || [], selectedDay);
-        setLoadingLeagues(false);
-      })
-      .catch(() => {
+    let ignore = false;
+    async function fetchLeaguesAndFilter() {
+      setLoadingLeagues(true);
+      setError("");
+      setLeagues([]);
+      setFilteredLeagues([]);
+      setSelectedLeague(null);
+      setEvents([]);
+      try {
+        const allLeagues = await getLeaguesBySport(selectedSport);
+        // جلب كل المباريات للأسبوع لكل بطولة
+        const leaguesWithEvents = await Promise.all(
+          allLeagues.map(async (lg) => {
+            const events = await getUpcomingEventsByLeague(lg.idLeague);
+            return {
+              ...lg,
+              eventsThisWeek: events || []
+            };
+          })
+        );
+        // فلترة البطولات التي لديها مباريات في اليوم المختار فقط
+        const leaguesWithEventsToday = leaguesWithEvents.filter(
+          (lg) =>
+            lg.eventsThisWeek &&
+            lg.eventsThisWeek.some(ev => ev.dateEvent === selectedDay)
+        );
+        if (!ignore) {
+          setLeagues(leaguesWithEvents);
+          setFilteredLeagues(leaguesWithEventsToday);
+        }
+      } catch {
         setError("خطأ في تحميل البطولات، حاول لاحقاً");
-        setLoadingLeagues(false);
-      });
+      }
+      setLoadingLeagues(false);
+    }
+    fetchLeaguesAndFilter();
+    return () => { ignore = true; };
     // eslint-disable-next-line
   }, [selectedSport, selectedDay]);
 
-  // فلترة البطولات حسب اليوم المختار
-  function filterLeaguesByDay(leaguesList, date) {
-    if (!leaguesList.length) {
-      setFilteredLeagues([]);
-      return;
-    }
-    // جلب البطولات التي لديها مباريات لهذا اليوم
-    // نفترض أن كل بطولة تحتوي على خاصية availableDates فيها تواريخ متوفرة (إذا كان الـ API يدعم ذلك)
-    // إذا لم يكن موجودًا، ستحتاج لجلب المباريات لكل بطولة وتصفية التي لديها مباريات في هذا اليوم (قد يكون بطيئًا حسب الـ API)
-    // هنا سنجرب الخيار السريع، وإن لم ينجح، نعدل لاحقًا معك!
-    const filtered = leaguesList.filter(
-      (lg) =>
-        !lg.availableDates ||
-        lg.availableDates.includes(date) ||
-        !date // إذا لم تتوفر خاصية التواريخ، نظهر الكل
-    );
-    setFilteredLeagues(filtered.length ? filtered : leaguesList);
-  }
-
-  // عند اختيار يوم من الشريط
-  useEffect(() => {
-    filterLeaguesByDay(leagues, selectedDay);
-    // eslint-disable-next-line
-  }, [leagues, selectedDay]);
-
-  // عند اختيار بطولة، جلب المباريات للأسبوع (أو لليوم المختار فقط)
-  const handleLeagueSelect = async (lg) => {
+  // عند اختيار بطولة، عرض مباريات هذا اليوم فقط
+  const handleLeagueSelect = (lg) => {
     setSelectedLeague(lg);
     setLoadingEvents(true);
-    setEvents([]);
     setError("");
-    try {
-      const evs = await getEventsByLeagueAndDate(lg.idLeague, selectedDay);
-      setEvents(Array.isArray(evs) ? evs : []);
-    } catch {
-      setError("خطأ في تحميل المباريات، حاول لاحقاً");
-      setEvents([]);
-    }
+    // جلب مباريات اليوم المختار من الأحداث المخزنة محليًا
+    const matchesToday = (lg.eventsThisWeek || []).filter(
+      ev => ev.dateEvent === selectedDay
+    );
+    setEvents(matchesToday);
     setLoadingEvents(false);
   };
-
-  // عرض علم الدولة (بناءً على اسم الدولة)
-  function Flag({ country }) {
-    if (!country) return null;
-    // استخدم مكتبة أعلام أو صور جاهزة حسب مشروعك، مؤقتًا نستخدم Emoji كحل مؤقت
-    // يمكنك لاحقًا ربطه بصور أعلام حقيقية
-    const emojiFlags = {
-      France: "🇫🇷",
-      Italy: "🇮🇹",
-      Spain: "🇪🇸",
-      Germany: "🇩🇪",
-      England: "🏴",
-      Tunisia: "🇹🇳",
-      Morocco: "🇲🇦",
-      USA: "🇺🇸"
-      // أضف باقي الدول حسب الحاجة
-    };
-    return (
-      <span style={{ fontSize: 21, marginRight: 7 }}>
-        {emojiFlags[country] || "🏳️"}
-      </span>
-    );
-  }
 
   // --- واجهة المستخدم ---
   return (
@@ -233,8 +222,8 @@ export default function ParisSportifsPage() {
           ) : (
             <div style={{
               display: "flex",
-              flexWrap: "wrap",
-              gap: 11,
+              flexDirection: "column",
+              gap: 7,
               marginBottom: 10
             }}>
               {filteredLeagues.map(lg => (
@@ -245,13 +234,15 @@ export default function ParisSportifsPage() {
                     color: selectedLeague?.idLeague === lg?.idLeague ? "#fff" : "#222",
                     borderRadius: 10,
                     border: "1px solid #2176c1",
-                    padding: "8px 13px",
+                    padding: "10px 8px",
                     fontWeight: "bold",
                     fontSize: "1em",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    minWidth: 0
+                    minWidth: 0,
+                    textAlign: "right",
+                    justifyContent: "flex-start"
                   }}
                   onClick={() => handleLeagueSelect(lg)}
                   disabled={!lg?.idLeague}
