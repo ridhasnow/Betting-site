@@ -1,12 +1,8 @@
 import React, { useEffect, useState, useContext } from "react";
-import {
-  getLeaguesBySport,
-  getUpcomingEventsByLeague
-} from "./sportsApi";
 import { BetCartContext } from "./BetCartContext";
 import BetCartFab from "./BetCartFab";
 
-// قائمة الرياضات المعتمدة
+// قائمة الرياضات المعتمدة (ثابتة)
 const SPORTS = [
   { key: "Soccer", label: "Football", icon: "⚽" },
   { key: "Basketball", label: "Basketball", icon: "🏀" },
@@ -18,7 +14,89 @@ const SPORTS = [
   { key: "Table Tennis", label: "Tennis Table", icon: "🏓" }
 ];
 
-// دالة لجلب أيام الأسبوع (مع اليوم الحالي)
+// بطولات وهمية لكل رياضة (تجريبية)
+const DUMMY_LEAGUES = {
+  Soccer: [
+    { idLeague: "1", strLeague: "الدوري الإنجليزي", strCountry: "England" },
+    { idLeague: "2", strLeague: "الدوري الإسباني", strCountry: "Spain" },
+    { idLeague: "3", strLeague: "دوري أبطال أوروبا", strCountry: "Europe" }
+  ],
+  Basketball: [
+    { idLeague: "4", strLeague: "NBA", strCountry: "USA" },
+    { idLeague: "5", strLeague: "EuroLeague", strCountry: "Europe" }
+  ],
+  Tennis: [
+    { idLeague: "6", strLeague: "Wimbledon", strCountry: "UK" },
+    { idLeague: "7", strLeague: "Roland Garros", strCountry: "France" }
+  ],
+  Handball: [
+    { idLeague: "8", strLeague: "LNH", strCountry: "France" }
+  ],
+  Rugby: [
+    { idLeague: "9", strLeague: "Top 14", strCountry: "France" }
+  ],
+  "Ice Hockey": [
+    { idLeague: "10", strLeague: "NHL", strCountry: "USA" }
+  ],
+  Volleyball: [
+    { idLeague: "11", strLeague: "Superlega", strCountry: "Italy" }
+  ],
+  "Table Tennis": [
+    { idLeague: "12", strLeague: "World Table Tennis", strCountry: "World" }
+  ]
+};
+
+// مباريات وهمية لكل بطولة (تجريبية)
+const DUMMY_EVENTS = {
+  "1": [
+    { idEvent: "100", strHomeTeam: "مانشستر سيتي", strAwayTeam: "ليفربول", dateEvent: todayStr(), strTime: "20:00" },
+    { idEvent: "101", strHomeTeam: "تشيلسي", strAwayTeam: "آرسنال", dateEvent: addDaysStr(1), strTime: "21:30" }
+  ],
+  "2": [
+    { idEvent: "110", strHomeTeam: "ريال مدريد", strAwayTeam: "برشلونة", dateEvent: todayStr(), strTime: "22:00" }
+  ],
+  "3": [
+    { idEvent: "120", strHomeTeam: "بايرن ميونيخ", strAwayTeam: "باريس سان جيرمان", dateEvent: addDaysStr(2), strTime: "19:00" }
+  ],
+  "4": [
+    { idEvent: "130", strHomeTeam: "Lakers", strAwayTeam: "Celtics", dateEvent: todayStr(), strTime: "19:00" }
+  ],
+  "5": [
+    { idEvent: "140", strHomeTeam: "Fenerbahce", strAwayTeam: "Real Madrid", dateEvent: addDaysStr(3), strTime: "18:00" }
+  ],
+  "6": [
+    { idEvent: "150", strHomeTeam: "نوفاك جوكوفيتش", strAwayTeam: "كاسبر رود", dateEvent: todayStr(), strTime: "15:00" }
+  ],
+  "7": [
+    { idEvent: "151", strHomeTeam: "نادال", strAwayTeam: "مدفيديف", dateEvent: addDaysStr(1), strTime: "16:00" }
+  ],
+  "8": [
+    { idEvent: "160", strHomeTeam: "باريس", strAwayTeam: "مونبلييه", dateEvent: addDaysStr(2), strTime: "17:00" }
+  ],
+  "9": [
+    { idEvent: "170", strHomeTeam: "كليرمون", strAwayTeam: "تولوز", dateEvent: todayStr(), strTime: "20:00" }
+  ],
+  "10": [
+    { idEvent: "180", strHomeTeam: "Rangers", strAwayTeam: "Bruins", dateEvent: todayStr(), strTime: "02:00" }
+  ],
+  "11": [
+    { idEvent: "190", strHomeTeam: "Civitanova", strAwayTeam: "Modena", dateEvent: addDaysStr(1), strTime: "21:00" }
+  ],
+  "12": [
+    { idEvent: "200", strHomeTeam: "Ma Long", strAwayTeam: "Fan Zhendong", dateEvent: todayStr(), strTime: "13:00" }
+  ]
+};
+
+// أدوات الوقت
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function addDaysStr(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+// دالة أيام الأسبوع
 function getDayTabs() {
   const days = [];
   const today = new Date();
@@ -37,15 +115,13 @@ function getDayTabs() {
   }
   return days;
 }
-
-// دوال أعلام تجريبية
+// أعلام تجريبية
 function Flag({ country }) {
   if (!country) return null;
   const emojiFlags = {
     France: "🇫🇷", Italy: "🇮🇹", Spain: "🇪🇸", Germany: "🇩🇪", England: "🏴",
     Tunisia: "🇹🇳", Morocco: "🇲🇦", USA: "🇺🇸", Denmark: "🇩🇰", Ecuador: "🇪🇨",
-    DR: "🇨🇩", "DR Congo": "🇨🇩", Dominican: "🇩🇴", Albania: "🇦🇱", Algeria: "🇩🇿"
-    // أضف المزيد حسب الحاجة
+    DR: "🇨🇩", "DR Congo": "🇨🇩", Dominican: "🇩🇴", Albania: "🇦🇱", Algeria: "🇩🇿", Europe: "🇪🇺", UK: "🇬🇧", World:"🌍"
   };
   // محاولة استخراج العلم من اسم الدولة
   const match = Object.keys(emojiFlags).find(key =>
@@ -69,7 +145,7 @@ export default function ParisSportifsPage() {
   const dayTabs = getDayTabs();
   const [selectedDay, setSelectedDay] = useState(dayTabs[0].value);
 
-  // ربط سلة الرهانات
+  // سلة الرهانات
   let betCart = {};
   try {
     betCart = useContext(BetCartContext) || {};
@@ -78,45 +154,30 @@ export default function ParisSportifsPage() {
   }
   const { addToCart = () => {}, cart = [] } = betCart;
 
-  // جلب البطولات للرياضة المختارة فقط
+  // عند تغيير الرياضة: جلب البطولات الدمية
   useEffect(() => {
-    let ignore = false;
-    async function fetchLeagues() {
-      setLoadingLeagues(true);
-      setError("");
-      setLeagues([]);
-      setSelectedLeague(null);
-      setEvents([]);
-      try {
-        const allLeagues = await getLeaguesBySport(selectedSport);
-        if (!ignore) setLeagues(allLeagues);
-      } catch {
-        setError("خطأ في تحميل البطولات، حاول لاحقاً");
-      }
+    setLoadingLeagues(true);
+    setError("");
+    setLeagues([]);
+    setSelectedLeague(null);
+    setEvents([]);
+    setTimeout(() => {
+      setLeagues(DUMMY_LEAGUES[selectedSport] || []);
       setLoadingLeagues(false);
-    }
-    fetchLeagues();
-    return () => { ignore = true; };
-    // eslint-disable-next-line
+    }, 400);
   }, [selectedSport]);
 
-  // عند اختيار بطولة، جلب كل المباريات القادمة ثم فلترها حسب اليوم المختار
-  const handleLeagueSelect = async (lg) => {
-    setSelectedLeague(lg);
+  // عند اختيار بطولة أو تغيير اليوم: جلب مباريات اليوم من الدمية
+  useEffect(() => {
+    if (!selectedLeague) return setEvents([]);
     setLoadingEvents(true);
-    setError("");
-    try {
-      const allEvents = await getUpcomingEventsByLeague(lg.idLeague);
-      const matchesToday = (allEvents || []).filter(ev => ev.dateEvent === selectedDay);
-      setEvents(matchesToday);
-    } catch {
-      setEvents([]);
-      setError("خطأ في تحميل المباريات.");
-    }
-    setLoadingEvents(false);
-  };
+    setTimeout(() => {
+      const evs = (DUMMY_EVENTS[selectedLeague.idLeague] || []).filter(ev => ev.dateEvent === selectedDay);
+      setEvents(evs);
+      setLoadingEvents(false);
+    }, 300);
+  }, [selectedLeague, selectedDay]);
 
-  // --- واجهة المستخدم ---
   return (
     <div style={{ padding: "0 0 70px 0", background: "#f7f7ff", minHeight: "100vh" }}>
       <header className="header header-black">
@@ -210,7 +271,7 @@ export default function ParisSportifsPage() {
             }}>
               {leagues.map(lg => (
                 <button
-                  key={lg?.idLeague || Math.random()}
+                  key={lg?.idLeague}
                   style={{
                     background: selectedLeague?.idLeague === lg?.idLeague ? "#2176c1" : "#fff",
                     color: selectedLeague?.idLeague === lg?.idLeague ? "#fff" : "#222",
@@ -226,11 +287,11 @@ export default function ParisSportifsPage() {
                     textAlign: "right",
                     justifyContent: "flex-start"
                   }}
-                  onClick={() => handleLeagueSelect(lg)}
+                  onClick={() => setSelectedLeague(lg)}
                   disabled={!lg?.idLeague}
                 >
                   <Flag country={lg?.strCountry} />
-                  <span>{lg?.strLeague || lg?.strLeagueAlternate || "بطولة غير معروفة"}</span>
+                  <span>{lg?.strLeague || "بطولة غير معروفة"}</span>
                 </button>
               ))}
               {!error && leagues.length === 0 && (
@@ -252,7 +313,7 @@ export default function ParisSportifsPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
                 {events.map(ev => (
                   <div
-                    key={ev?.idEvent || Math.random()}
+                    key={ev?.idEvent}
                     style={{
                       background: "#fff",
                       borderRadius: 10,
