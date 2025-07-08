@@ -53,7 +53,7 @@ export async function getTodayEventsBySport(sport, dateStr) {
   }
 }
 
-// جلب المباريات القادمة لبطولة معينة (كل الأسبوع)
+// جلب المباريات القادمة لبطولة معينة (كل الأسبوع أو أكثر)
 export async function getUpcomingEventsByLeague(idLeague) {
   try {
     const url = BASE_URL_V2 + "eventsnextleague.php?id=" + idLeague;
@@ -66,7 +66,7 @@ export async function getUpcomingEventsByLeague(idLeague) {
   }
 }
 
-// جلب مباريات بطولة ليوم معيّن
+// جلب مباريات بطولة ليوم معيّن (تفلتر من كل القادمة)
 export async function getEventsByLeagueAndDate(idLeague, dateStr) {
   const all = await getUpcomingEventsByLeague(idLeague);
   if (!dateStr) return all;
