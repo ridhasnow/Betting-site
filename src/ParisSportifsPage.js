@@ -80,46 +80,28 @@ export default function ParisSportifsPage() {
   const { addToCart = () => {}, cart = [] } = betCart;
 
   // جلب البطولات مع فلترة البطولات التي لديها مباريات فعلاً في اليوم المختار
-  useEffect(() => {
-    let ignore = false;
-    async function fetchLeaguesAndFilter() {
-      setLoadingLeagues(true);
-      setError("");
-      setLeagues([]);
-      setFilteredLeagues([]);
-      setSelectedLeague(null);
-      setEvents([]);
-      try {
-        const allLeagues = await getLeaguesBySport(selectedSport);
-        // جلب كل المباريات القادمة للأسبوع لكل بطولة
-        const leaguesWithEvents = await Promise.all(
-          allLeagues.map(async (lg) => {
-            const events = await getUpcomingEventsByLeague(lg.idLeague);
-            return {
-              ...lg,
-              eventsThisWeek: events || []
-            };
-          })
-        );
-        // فلترة البطولات التي لديها مباريات في اليوم المختار فقط
-        const leaguesWithEventsToday = leaguesWithEvents.filter(
-          (lg) =>
-            lg.eventsThisWeek &&
-            lg.eventsThisWeek.some(ev => ev.dateEvent === selectedDay)
-        );
-        if (!ignore) {
-          setLeagues(leaguesWithEvents);
-          setFilteredLeagues(leaguesWithEventsToday);
-        }
-      } catch {
-        setError("خطأ في تحميل البطولات، حاول لاحقاً");
-      }
-      setLoadingLeagues(false);
+  
+useEffect(() => {
+  let ignore = false;
+  async function fetchLeagues() {
+    setLoadingLeagues(true);
+    setError("");
+    setLeagues([]);
+    setSelectedLeague(null);
+    setEvents([]);
+    try {
+      const allLeagues = await getLeaguesBySport(selectedSport);
+      if (!ignore) setLeagues(allLeagues);
+    } catch {
+      setError("خطأ في تحميل البطولات، حاول لاحقاً");
     }
-    fetchLeaguesAndFilter();
-    return () => { ignore = true; };
-    // eslint-disable-next-line
-  }, [selectedSport, selectedDay]);
+    setLoadingLeagues(false);
+  }
+  fetchLeagues();
+  return () => { ignore = true; };
+  // eslint-disable-next-line
+}, [selectedSport]);
+
 
   // عند اختيار بطولة، عرض مباريات هذا اليوم فقط
   const handleLeagueSelect = (lg) => {
