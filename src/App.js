@@ -26,6 +26,9 @@ import MyBetsPage from "./MyBetsPage";
 // استدعاء الدوال الجديدة للنتائج المباشرة من sportsApi.js
 import { getLiveScoresBySport } from "./sportsApi";
 
+// استيراد صفحة الكازينو
+import Casino from "./pages/Casino";
+
 const sliderImages = [
   "/bet-affiche.png",
   "/bet-affiche2.png",
@@ -128,6 +131,7 @@ function PlayerMainContent({ auth, setAuth, navigate }) {
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
               if (btn.key === "paris-sportifs") navigate("/paris-sportifs");
+              if (btn.key === "jeux-de-casino") navigate("/casino");
             }}
           >
             <div className="icon-holder">
@@ -253,6 +257,7 @@ function GuestMainContent({ current, setCurrent, showLive, setShowLive, liveMatc
             onClick={() => {
               if (btn.key === "paris-en-ligne") setShowLive(true);
               if (btn.key === "paris-sportifs") navigate("/paris-sportifs");
+              if (btn.key === "jeux-de-casino") navigate("/casino");
             }}
           >
             <div className="icon-holder">
@@ -389,6 +394,7 @@ function App() {
         <Routes>
           <Route path="/paris-sportifs" element={<ParisSportifsPage />} />
           <Route path="/my-bets" element={<MyBetsPage />} />
+          <Route path="/casino" element={<Casino />} />
           <Route
             path="*"
             element={
