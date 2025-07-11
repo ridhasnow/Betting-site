@@ -1,9 +1,49 @@
 .slot5lions-container {
-  padding: 20px;
-  background: #212121;
+  background: #181c24;
   color: #fff;
-  border-radius: 10px;
-  max-width: 600px;
-  margin: 30px auto;
+  border-radius: 12px;
+  max-width: 520px;
+  margin: 40px auto;
+  padding: 28px 16px;
+  box-shadow: 0 2px 16px #0004;
   text-align: center;
 }
+.slotmegas-reels {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.slotmegas-reel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.slotmegas-symbol {
+  background: #222d3a;
+  border-radius: 7px;
+  border: 2px solid #e5c85d55;
+  font-size: 1.3em;
+  padding: 10px 8px;
+  min-width: 56px;
+  margin: 2px 0;
+}
+.slotmegas-symbol.high { border-color: #e5c85d; }
+.slotmegas-symbol.low { border-color: #67c1f5; }
+.slotmegas-symbol.wild { border-color: #f39c12; }
+.slotmegas-symbol.scatter { border-color: #e17055; }
+.spin-btn {
+  background: linear-gradient(90deg, #e5c85d, #f2b041);
+  border: none;
+  color: #181c24;
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 10px 36px;
+  font-size: 1.1em;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 1px 6px #0002;
+  transition: background 0.2s;
+}
+.spin-btn:hover { background: linear-gradient(90deg, #f2b041, #e5c85d); }
+.slotmegas-note { margin-top: 16px; font-size: 0.9em; color: #ffe66d; }
