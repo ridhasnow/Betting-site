@@ -28,6 +28,7 @@ import { getLiveScoresBySport } from "./sportsApi";
 
 // استيراد صفحة الكازينو
 import CasinoGamesPage from "./casino/CasinoGamesPage";
+import "./casino/CasinoGamesPage.css";
 // استيراد ألعاب الكازينو الإضافية
 
 
