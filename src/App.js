@@ -27,10 +27,9 @@ import MyBetsPage from "./MyBetsPage";
 import { getLiveScoresBySport } from "./sportsApi";
 
 // استيراد صفحة الكازينو
-import Casino from "./pages/Casino";
+import CasinoGamesPage from "./casino/CasinoGamesPage";
 // استيراد ألعاب الكازينو الإضافية
-import Slot5LionsGame from "./casino-games/slot-5lions/Slot5LionsGame";
-import BigBassBonanza from "./casino-games/slot-big-bass-bonanza/BigBassBonanza";
+
 
 const sliderImages = [
   "/bet-affiche.png",
@@ -397,10 +396,9 @@ function App() {
         <Routes>
           <Route path="/paris-sportifs" element={<ParisSportifsPage />} />
           <Route path="/my-bets" element={<MyBetsPage />} />
-          <Route path="/casino" element={<Casino />} />
+          <Route path="/casino" element={<CasinoGamesPage />} />
           {/* روت ألعاب الكازينو المنفصلة */}
-          <Route path="/casino/slot-5lions" element={<Slot5LionsGame />} />
-          <Route path="/casino/big-bass-bonanza" element={<BigBassBonanza />} />
+          
           <Route
             path="*"
             element={
